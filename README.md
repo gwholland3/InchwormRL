@@ -17,3 +17,8 @@ This code was developed and run on Python `3.10.10`, but most likely any version
 We recommend doing this in a fresh Python virtual environment. Cd into the repo and run:
 
 `pip3 install -r requirements.txt`
+
+## Run the Environment
+To run the MuJoCo environment, run: 
+
+`python3 something.py`
