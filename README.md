@@ -1,6 +1,10 @@
 # InchwormRL
 For CSC 480.
 
+Gymnasium GitHub repo: https://github.com/Farama-Foundation/Gymnasium  
+Gymnasium documentation: https://gymnasium.farama.org/  
+MuJoCo documentation: https://mujoco.readthedocs.io/en/latest/overview.html
+
 ## Setup
 
 Follow these instructions to set up the codebase locally.
