@@ -1,0 +1,32 @@
+<!--An inchworm xml environment in MuJoCo-->
+
+<mujoco model="2d_inchworm">
+  <option integrator="RK4"/>
+  <worldbody>
+    <body name="ground"/>
+
+    <!-- Segment 1: Left Foot -->
+    <body name="left_foot" pos="-0.5 0 0">
+      <geom type="box" size="0.25 0.1 0.1" rgba="0.8 0 0 1"/>
+    </body>
+
+    <!-- Segment 2: Left Middle -->
+    <body name="left_middle" pos="0 0 0">
+      <geom type="box" size="0.25 0.1 0.1" rgba="0 0.8 0 1"/>
+      <joint name="left_joint" type="hinge" pos="0 0 0" axis="0 0 1"/>
+    </body>
+
+    <!-- Segment 3: Right Middle -->
+    <body name="right_middle" pos="0.5 0 0">
+      <geom type="box" size="0.25 0.1 0.1" rgba="0 0 0.8 1"/>
+      <joint name="middle_joint" type="hinge" pos="0 0 0" axis="0 0 1"/>
+    </body>
+
+    <!-- Segment 4: Right Foot -->
+    <body name="right_foot" pos="1 0 0">
+      <geom type="box" size="0.25 0.1 0.1" rgba="0.8 0.8 0 1"/>
+      <joint name="right_joint" type="hinge" pos="0 0 0" axis="0 0 1"/>
+    </body>
+
+  </worldbody>
+</mujoco>
