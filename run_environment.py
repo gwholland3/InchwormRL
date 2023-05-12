@@ -4,7 +4,7 @@ from mujoco import MjModel, MjData, viewer, mj_step
 
 
 def demo_program():
-    env = gym.make("Ant-v4", render_mode="human")
+    env = gym.make("Ant-v4", render_mode="human", xml_file='<INSERT ABSOLUTE PATH TO INCHWORM.XML FILE HERE>')
 
     observation, info = env.reset()
     for _ in range(1000):
@@ -35,4 +35,4 @@ def inchworm_program():
 
 
 if __name__ == "__main__":
-    inchworm_program()
+    demo_program()
