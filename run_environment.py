@@ -1,10 +1,13 @@
 import time
 import gymnasium as gym
 from mujoco import MjModel, MjData, viewer, mj_step
+from inchworm import InchwormEnv
 
 
 def demo_program():
-    env = gym.make("Ant-v4", render_mode="human", xml_file='<INSERT ABSOLUTE PATH TO INCHWORM.XML FILE HERE>')
+    # env = gym.make("Ant-v4", render_mode="human", xml_file='<INSERT ABSOLUTE PATH TO INCHWORM.XML FILE HERE>')
+    # env = gym.make("Ant-v4", render_mode="human")
+    env = InchwormEnv(render_mode="human")
 
     observation, info = env.reset()
     for _ in range(1000):
