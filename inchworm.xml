@@ -3,7 +3,10 @@
 <mujoco model="2d_inchworm">
   <option integrator="RK4"/>
   <worldbody>
-    <body name="ground"/>
+    <!-- Ground -->
+    <body name="ground" pos="0 0 -0.5">
+      <geom type="plane" size="2 2 0.1" rgba="0.8 0.8 0.8 1"/>
+    </body>
 
     <!-- Segment 1: Left Foot -->
     <body name="left_foot" pos="-0.5 0 0">
