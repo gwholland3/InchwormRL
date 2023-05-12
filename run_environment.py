@@ -1,5 +1,6 @@
 import gymnasium as gym
 import mujoco
+import mujoco.viewer
 
 def demo_program():
     env = gym.make("Ant-v4", render_mode="human")
@@ -16,9 +17,7 @@ def demo_program():
 def inchworm_program():
     model = mujoco.MjModel.from_xml_path("inchworm.xml")
     data = mujoco.MjData(model)
-    while data.time < 1:
-        mujoco.mj_step(model, data)
-        print(data.geom_xpos)
+    mujoco.viewer.launch(model, data)
 
 
 if __name__ == "__main__":
