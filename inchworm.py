@@ -149,7 +149,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         healthy_z_range=(0.2, 1.0),
         contact_force_range=(-1.0, 1.0),
         reset_noise_scale=0.1,
-        # exclude_current_positions_from_observation=True,
+        exclude_current_positions_from_observation=True,
         **kwargs,
     ):
         utils.EzPickle.__init__(
@@ -163,7 +163,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
             healthy_z_range,
             contact_force_range,
             reset_noise_scale,
-            # exclude_current_positions_from_observation,
+            exclude_current_positions_from_observation,
             **kwargs,
         )
 
@@ -180,13 +180,13 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
 
         self._use_contact_forces = use_contact_forces
 
-        # self._exclude_current_positions_from_observation = (
-        #     exclude_current_positions_from_observation
-        # )
+        self._exclude_current_positions_from_observation = (
+            exclude_current_positions_from_observation
+        )
 
         obs_shape = 27
-        # if not exclude_current_positions_from_observation:
-        #     obs_shape += 2
+        if not exclude_current_positions_from_observation:
+            obs_shape += 2
         if use_contact_forces:
             obs_shape += 84
 

@@ -23,10 +23,10 @@
     <!-- Segment 1: Left Foot -->
     <body name="left_foot" pos="-3 0 1">
       <geom type="box" size="1 0.2 0.2" rgba="0.8 0 0 1"/>
-      <joint armature="0" damping="0" limited="false" margin="0.01" name="root" pos="0 0 0" type="free"/>
-<!--      <joint name="hc_joint" type="hinge" pos="3 0 0" axis="0 1 0"/>-->
-<!--      <joint name="hsx_joint" type="slide" pos="3 0 0" axis="1 0 0"/>-->
-<!--      <joint name="hsy_joint" type="slide" pos="3 0 0" axis="0 0 1"/>-->
+<!--      <joint armature="0" damping="0" limited="false" margin="0.01" name="root" pos="0 0 0" type="free"/>-->
+      <joint name="hc_joint" type="hinge" pos="3 0 0" axis="0 1 0"/>
+      <joint name="hsx_joint" type="slide" pos="3 0 0" axis="1 0 0"/>
+      <joint name="hsy_joint" type="slide" pos="3 0 0" axis="0 0 1"/>
 
       <!-- Segment 2: Left Middle -->
       <body name="left_middle" pos="2 0 0">
