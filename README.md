@@ -25,4 +25,4 @@ We recommend doing this in a fresh Python virtual environment. Cd into the repo 
 ## Run the Environment
 To run the MuJoCo environment, run: 
 
-`python3 something.py`
+`python3 run_environment.py`
