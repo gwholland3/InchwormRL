@@ -6,7 +6,7 @@ from gymnasium.spaces import Box
 
 
 DEFAULT_CAMERA_CONFIG = {
-    "distance": 4.0,
+    "distance": 8.0,
 }
 
 

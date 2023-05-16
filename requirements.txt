@@ -1,1 +1,2 @@
 gymnasium[mujoco]==0.28.1
+numpy==1.24.3
