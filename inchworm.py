@@ -14,43 +14,29 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
     """
     ## Description
 
-    This environment is based on the environment introduced by Schulman,
-    Moritz, Levine, Jordan and Abbeel in ["High-Dimensional Continuous Control
-    Using Generalized Advantage Estimation"](https://arxiv.org/abs/1506.02438).
-    The ant is a 3D robot consisting of one torso (free rotational body) with
-    four legs attached to it with each leg having two links. The goal is to
-    coordinate the four legs to move in the forward (right) direction by applying
-    torques on the eight hinges connecting the two links of each leg and the torso
-    (nine parts and eight hinges).
+    This environment is for CSC 480.
+
+    The inchworm is a 2D robot consisting of four links attached in a line, with
+    rotational joints between each link. The goal is to coordinate the four links
+    to move in the forward (right) direction by applying torques on the three
+    hinges connecting the links together.
 
     ## Action Space
-    The action space is a `Box(-1, 1, (8,), float32)`. An action represents the torques applied at the hinge joints.
+    The action space is a `Box(-1, 1, (3,), float32)`. An action represents the torques applied at the hinge joints.
 
     | Num | Action                                                            | Control Min | Control Max | Name (in corresponding XML file) | Joint | Unit         |
     | --- | ----------------------------------------------------------------- | ----------- | ----------- | -------------------------------- | ----- | ------------ |
-    | 0   | Torque applied on the rotor between the torso and back right hip  | -1          | 1           | hip_4 (right_back_leg)           | hinge | torque (N m) |
-    | 1   | Torque applied on the rotor between the back right two links      | -1          | 1           | angle_4 (right_back_leg)         | hinge | torque (N m) |
-    | 2   | Torque applied on the rotor between the torso and front left hip  | -1          | 1           | hip_1 (front_left_leg)           | hinge | torque (N m) |
-    | 3   | Torque applied on the rotor between the front left two links      | -1          | 1           | angle_1 (front_left_leg)         | hinge | torque (N m) |
-    | 4   | Torque applied on the rotor between the torso and front right hip | -1          | 1           | hip_2 (front_right_leg)          | hinge | torque (N m) |
-    | 5   | Torque applied on the rotor between the front right two links     | -1          | 1           | angle_2 (front_right_leg)        | hinge | torque (N m) |
-    | 6   | Torque applied on the rotor between the torso and back left hip   | -1          | 1           | hip_3 (back_leg)                 | hinge | torque (N m) |
-    | 7   | Torque applied on the rotor between the back left two links       | -1          | 1           | angle_3 (back_leg)               | hinge | torque (N m) |
+    | 0   | Torque applied on the rotor between the first and second links    | -1          | 1           | left_joint                       | hinge | torque (N m) |
+    | 1   | Torque applied on the rotor between the second and third links    | -1          | 1           | middle_joint                     | hinge | torque (N m) |
+    | 2   | Torque applied on the rotor between the third and fourth links    | -1          | 1           | right_joint                      | hinge | torque (N m) |
 
     ## Observation Space
 
-    Observations consist of positional values of different body parts of the ant,
+    Observations consist of positional values of different body parts of the inchworm,
     followed by the velocities of those individual parts (their derivatives) with all
     the positions ordered before all the velocities.
 
-    By default, observations do not include the x- and y-coordinates of the ant's torso. These may
-    be included by passing `exclude_current_positions_from_observation=False` during construction.
-    In that case, the observation space will have 29 dimensions where the first two dimensions
-    represent the x- and y- coordinates of the ant's torso.
-    Regardless of whether `exclude_current_positions_from_observation` was set to true or false, the x- and y-coordinates
-    of the torso will be returned in `info` with keys `"x_position"` and `"y_position"`, respectively.
-
-    However, by default, an observation is a `ndarray` with shape `(27,)`
+    By default, an observation is a `ndarray` with shape `(27,)`
     where the elements correspond to the following:
 
     | Num | Observation                                                  | Min    | Max    | Name (in corresponding XML file)       | Joint | Unit                     |
@@ -83,73 +69,35 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
     | 25  | angular velocity of angle between torso and back right link  | -Inf   | Inf    | hip_4 (right_back_leg)                 | hinge | angle (rad)              |
     | 26  | angular velocity of the angle between back right links       | -Inf   | Inf    | ankle_4 (right_back_leg)               | hinge | angle (rad)              |
 
-
-    If version < `v4` or `use_contact_forces` is `True` then the observation space is extended by 14*6 = 84 elements, which are contact forces
-    (external forces - force x, y, z and torque x, y, z) applied to the
-    center of mass of each of the objects. The 14 object are:
-
-    in `v4` or earlier:
-    | id | object |
-    |  ---  |  ------------  |
-    | 0 | worldObject (note: forces are always full of zeros) |
-    | 1 | torso |
-    | 2 | front_left_leg |
-    | 3 | aux_1 (front left leg) |
-    | 4 | ankle_1 (front left leg) |
-    | 5 | front_right_leg |
-    | 6 | aux_2 (front right leg) |
-    | 7 | ankle_2 (front right leg) |
-    | 8 | back_leg (back left leg) |
-    | 9 | aux_3 (back left leg) |
-    | 10 | ankle_3 (back left leg) |
-    | 11 | right_back_leg |
-    | 12 | aux_4 (back right leg) |
-    | 13 | ankle_4 (back right leg) |
-
-
     The (x,y,z) coordinates are translational DOFs while the orientations are rotational
     DOFs expressed as quaternions. One can read more about free joints on the [Mujoco Documentation](https://mujoco.readthedocs.io/en/latest/XMLreference.html).
 
-
-    **Note:** Ant-v4 environment no longer has the following contact forces issue.
-    If using previous Humanoid versions from v4, there have been reported issues that using a Mujoco-Py version > 2.0 results
-    in the contact forces always being 0. As such we recommend to use a Mujoco-Py version < 2.0
-    when using the Ant environment if you would like to report results with contact forces (if
-    contact forces are not used in your experiments, you can use version > 2.0).
-
     ## Rewards
     The reward consists of three parts:
-    - *healthy_reward*: Every timestep that the ant is healthy (see definition in section "Episode Termination"), it gets a reward of fixed value `healthy_reward`
+    - *healthy_reward*: Every timestep that the inchworm is healthy (see definition in section "Episode Termination"), it gets a reward of fixed value `healthy_reward`
     - *forward_reward*: A reward of moving forward which is measured as
     *(x-coordinate before action - x-coordinate after action)/dt*. *dt* is the time
     between actions and is dependent on the `frame_skip` parameter (default is 5),
     where the frametime is 0.01 - making the default *dt = 5 * 0.01 = 0.05*.
-    This reward would be positive if the ant moves forward (in positive x direction).
-    - *ctrl_cost*: A negative reward for penalising the ant if it takes actions
+    This reward would be positive if the inchworm moves forward (in positive x direction).
+    - *ctrl_cost*: A negative reward for penalising the inchworm if it takes actions
     that are too large. It is measured as *`ctrl_cost_weight` * sum(action<sup>2</sup>)*
     where *`ctr_cost_weight`* is a parameter set for the control and has a default value of 0.5.
-    - *contact_cost*: A negative reward for penalising the ant if the external contact
-    force is too large. It is calculated *`contact_cost_weight` * sum(clip(external contact
-    force to `contact_force_range`)<sup>2</sup>)*.
 
     The total reward returned is ***reward*** *=* *healthy_reward + forward_reward - ctrl_cost*.
 
-    But if `use_contact_forces=True` or version < `v4`
-    The total reward returned is ***reward*** *=* *healthy_reward + forward_reward - ctrl_cost - contact_cost*.
-
-    In either case `info` will also contain the individual reward terms.
+    `info` will also contain the individual reward terms.
 
     ## Starting State
     All observations start in state
     (0.0, 0.0,  0.75, 1.0, 0.0  ... 0.0) with a uniform noise in the range
     of [-`reset_noise_scale`, `reset_noise_scale`] added to the positional values and standard normal noise
     with mean 0 and standard deviation `reset_noise_scale` added to the velocity values for
-    stochasticity. Note that the initial z coordinate is intentionally selected
-    to be slightly high, thereby indicating a standing up ant. The initial orientation
-    is designed to make it face forward as well.
+    stochasticity. The initial orientation
+    is designed to make the inchworm face forward.
 
     ## Episode End
-    The ant is said to be unhealthy if any of the following happens:
+    The inchworm is said to be unhealthy if any of the following happens:
 
     1. Any of the state space values is no longer finite
     2. The z-coordinate of the torso is **not** in the closed interval given by `healthy_z_range` (defaults to [0.2, 1.0])
@@ -157,26 +105,12 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
     If `terminate_when_unhealthy=True` is passed during construction (which is the default),
     the episode ends when any of the following happens:
 
-    1. Truncation: The episode duration reaches a 1000 timesteps
+    1. Truncation: The episode duration reaches 1000 timesteps
     2. Termination: The ant is unhealthy
 
     If `terminate_when_unhealthy=False` is passed, the episode is ended only when 1000 timesteps are exceeded.
 
     ## Arguments
-
-    No additional arguments are currently supported in v2 and lower.
-
-    ```python
-    import gymnasium as gym
-    env = gym.make('Ant-v2')
-    ```
-
-    v3 and v4 take `gymnasium.make` kwargs such as `xml_file`, `ctrl_cost_weight`, `reset_noise_scale`, etc.
-
-    ```python
-    import gymnasium as gym
-    env = gym.make('Ant-v4', ctrl_cost_weight=0.1, ...)
-    ```
 
     | Parameter               | Type       | Default      |Description                    |
     |-------------------------|------------|--------------|-------------------------------|
@@ -190,13 +124,6 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
     | `contact_force_range`   | **tuple**  | `(-1, 1)`    | Contact forces are clipped to this range in the computation of *contact_cost* |
     | `reset_noise_scale`     | **float**  | `0.1`        | Scale of random perturbations of initial position and velocity (see section on Starting State) |
     | `exclude_current_positions_from_observation`| **bool** | `True`| Whether or not to omit the x- and y-coordinates from observations. Excluding the position can serve as an inductive bias to induce position-agnostic behavior in policies |
-
-    ## Version History
-    * v4: All MuJoCo environments now use the MuJoCo bindings in mujoco >= 2.1.3, also removed contact forces from the default observation space (new variable `use_contact_forces=True` can restore them)
-    * v3: Support for `gymnasium.make` kwargs such as `xml_file`, `ctrl_cost_weight`, `reset_noise_scale`, etc. rgb rendering comes from tracking camera (so agent does not run away from screen)
-    * v2: All continuous control environments now use mujoco-py >= 1.50
-    * v1: max_time_steps raised to 1000 for robot based tasks. Added reward_threshold to environments.
-    * v0: Initial versions release (1.0.0)
     """
 
     metadata = {
@@ -209,11 +136,11 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
     }
 
     from os import path
-    inchworm_xml_fp = path.join(path.dirname(__file__), 'inchworm.xml')
+    inchworm_xml_file = path.join(path.dirname(__file__), 'inchworm.xml')
 
     def __init__(
         self,
-        xml_file=inchworm_xml_fp,
+        xml_file=inchworm_xml_file,
         ctrl_cost_weight=0.5,
         use_contact_forces=False,
         contact_cost_weight=5e-4,
@@ -222,7 +149,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         healthy_z_range=(0.2, 1.0),
         contact_force_range=(-1.0, 1.0),
         reset_noise_scale=0.1,
-        exclude_current_positions_from_observation=True,
+        # exclude_current_positions_from_observation=True,
         **kwargs,
     ):
         utils.EzPickle.__init__(
@@ -236,7 +163,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
             healthy_z_range,
             contact_force_range,
             reset_noise_scale,
-            exclude_current_positions_from_observation,
+            # exclude_current_positions_from_observation,
             **kwargs,
         )
 
@@ -253,13 +180,13 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
 
         self._use_contact_forces = use_contact_forces
 
-        self._exclude_current_positions_from_observation = (
-            exclude_current_positions_from_observation
-        )
+        # self._exclude_current_positions_from_observation = (
+        #     exclude_current_positions_from_observation
+        # )
 
         obs_shape = 27
-        if not exclude_current_positions_from_observation:
-            obs_shape += 2
+        # if not exclude_current_positions_from_observation:
+        #     obs_shape += 2
         if use_contact_forces:
             obs_shape += 84
 
