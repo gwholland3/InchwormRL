@@ -149,7 +149,6 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         healthy_z_range=(0.2, 1.0),
         contact_force_range=(-1.0, 1.0),
         reset_noise_scale=0.1,
-        exclude_current_positions_from_observation=True,
         **kwargs,
     ):
         utils.EzPickle.__init__(
@@ -163,7 +162,6 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
             healthy_z_range,
             contact_force_range,
             reset_noise_scale,
-            exclude_current_positions_from_observation,
             **kwargs,
         )
 
@@ -180,24 +178,18 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
 
         self._use_contact_forces = use_contact_forces
 
-        self._exclude_current_positions_from_observation = (
-            exclude_current_positions_from_observation
-        )
-
         obs_shape = 27
-        if not exclude_current_positions_from_observation:
-            obs_shape += 2
-        if use_contact_forces:
-            obs_shape += 84
 
         observation_space = Box(
             low=-np.inf, high=np.inf, shape=(obs_shape,), dtype=np.float64
         )
 
+        default_frame_skip = 5
+
         MujocoEnv.__init__(
             self,
             xml_file,
-            5,
+            frame_skip=default_frame_skip,
             observation_space=observation_space,
             default_camera_config=DEFAULT_CAMERA_CONFIG,
             **kwargs,
@@ -283,14 +275,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         position = self.data.qpos.flat.copy()
         velocity = self.data.qvel.flat.copy()
 
-        if self._exclude_current_positions_from_observation:
-            position = position[2:]
-
-        if self._use_contact_forces:
-            contact_force = self.contact_forces.flat.copy()
-            return np.concatenate((position, velocity, contact_force))
-        else:
-            return np.concatenate((position, velocity))
+        return np.concatenate((position, velocity))
 
     def reset_model(self):
         noise_low = -self._reset_noise_scale
@@ -303,7 +288,8 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
             self.init_qvel
             + self._reset_noise_scale * self.np_random.standard_normal(self.model.nv)
         )
-        self.set_state(qpos, qvel)
+        # self.set_state(qpos, qvel)
+        self.set_state(self.init_qpos, self.init_qvel)
 
         observation = self._get_obs()
 
