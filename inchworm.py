@@ -112,18 +112,16 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
 
     ## Arguments
 
-    | Parameter               | Type       | Default      |Description                    |
-    |-------------------------|------------|--------------|-------------------------------|
-    | `xml_file`              | **str**    | `"ant.xml"`  | Path to a MuJoCo model |
-    | `ctrl_cost_weight`      | **float**  | `0.5`        | Weight for *ctrl_cost* term (see section on reward) |
-    | `use_contact_forces`    | **bool**  | `False`      | If true, it extends the observation space by adding contact forces (see `Observation Space` section) and includes contact_cost to the reward function (see `Rewards` section) |
-    | `contact_cost_weight`   | **float**  | `5e-4`       | Weight for *contact_cost* term (see section on reward) |
-    | `healthy_reward`        | **float**  | `1`          | Constant reward given if the ant is "healthy" after timestep |
-    | `terminate_when_unhealthy` | **bool**| `True`       | If true, issue a done signal if the z-coordinate of the torso is no longer in the `healthy_z_range` |
-    | `healthy_z_range`       | **tuple**  | `(0.2, 1)`   | The ant is considered healthy if the z-coordinate of the torso is in this range |
-    | `contact_force_range`   | **tuple**  | `(-1, 1)`    | Contact forces are clipped to this range in the computation of *contact_cost* |
-    | `reset_noise_scale`     | **float**  | `0.1`        | Scale of random perturbations of initial position and velocity (see section on Starting State) |
-    | `exclude_current_positions_from_observation`| **bool** | `True`| Whether or not to omit the x- and y-coordinates from observations. Excluding the position can serve as an inductive bias to induce position-agnostic behavior in policies |
+    | Parameter                  | Type      | Default      | Description                   |
+    |----------------------------|-----------|--------------|-------------------------------|
+    | `xml_file`                 | **str**   | `"ant.xml"`  | Path to a MuJoCo model |
+    | `ctrl_cost_weight`         | **float** | `0.5`        | Weight for *ctrl_cost* term (see section on reward) |
+    | `use_contact_forces`       | **bool**  | `False`      | If true, it extends the observation space by adding contact forces (see `Observation Space` section) and includes contact_cost to the reward function (see `Rewards` section) |
+    | `contact_cost_weight`      | **float** | `5e-4`       | Weight for *contact_cost* term (see section on reward) |
+    | `healthy_reward`           | **float** | `1`          | Constant reward given if the ant is "healthy" after timestep |
+    | `terminate_when_unhealthy` | **bool**  | `True`       | If true, issue a done signal if the inchworm is deemed to be "unhealthy" |
+    | `contact_force_range`      | **tuple** | `(-1, 1)`    | Contact forces are clipped to this range in the computation of *contact_cost* |
+    | `reset_noise_scale`        | **float** | `0.1`        | Scale of random perturbations of initial position and velocity (see section on Starting State) |
     """
 
     metadata = {
@@ -146,7 +144,6 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         contact_cost_weight=5e-4,
         healthy_reward=1.0,
         terminate_when_unhealthy=True,
-        healthy_z_range=(0.2, 1.0),
         contact_force_range=(-1.0, 1.0),
         reset_noise_scale=0.1,
         **kwargs,
@@ -159,7 +156,6 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
             contact_cost_weight,
             healthy_reward,
             terminate_when_unhealthy,
-            healthy_z_range,
             contact_force_range,
             reset_noise_scale,
             **kwargs,
@@ -170,7 +166,6 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
 
         self._healthy_reward = healthy_reward
         self._terminate_when_unhealthy = terminate_when_unhealthy
-        self._healthy_z_range = healthy_z_range
 
         self._contact_force_range = contact_force_range
 
@@ -184,12 +179,12 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
             low=-np.inf, high=np.inf, shape=(obs_shape,), dtype=np.float64
         )
 
-        default_frame_skip = 5
+        frame_skip = 5
 
         MujocoEnv.__init__(
             self,
             xml_file,
-            frame_skip=default_frame_skip,
+            frame_skip=frame_skip,
             observation_space=observation_space,
             default_camera_config=DEFAULT_CAMERA_CONFIG,
             **kwargs,
@@ -207,24 +202,9 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         return control_cost
 
     @property
-    def contact_forces(self):
-        raw_contact_forces = self.data.cfrc_ext
-        min_value, max_value = self._contact_force_range
-        contact_forces = np.clip(raw_contact_forces, min_value, max_value)
-        return contact_forces
-
-    @property
-    def contact_cost(self):
-        contact_cost = self._contact_cost_weight * np.sum(
-            np.square(self.contact_forces)
-        )
-        return contact_cost
-
-    @property
     def is_healthy(self):
         state = self.state_vector()
-        min_z, max_z = self._healthy_z_range
-        is_healthy = np.isfinite(state).all() and min_z <= state[2] <= max_z
+        is_healthy = np.isfinite(state).all()
         return is_healthy
 
     @property
@@ -233,42 +213,48 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         return terminated
 
     def step(self, action):
+        # Record current robot position, apply the action to the simulation, then record the resulting robot position
         xy_position_before = self.get_body_com("left_middle")[:2].copy()
         self.do_simulation(action, self.frame_skip)
         xy_position_after = self.get_body_com("left_middle")[:2].copy()
 
+        # Calculate the robot's current velocity based on its change in position
         xy_velocity = (xy_position_after - xy_position_before) / self.dt
         x_velocity, y_velocity = xy_velocity
 
+        # Calculate positive rewards
         forward_reward = x_velocity
         healthy_reward = self.healthy_reward
 
         rewards = forward_reward + healthy_reward
 
-        costs = ctrl_cost = self.control_cost(action)
+        # Calculate penalties
+        ctrl_cost = self.control_cost(action)
+
+        costs = ctrl_cost
+
+        # Calculate total reward to give to the agent
+        reward = rewards - costs
 
         terminated = self.terminated
         observation = self._get_obs()
+
+        # Compile informative statistics to pass back to the caller
         info = {
             "reward_forward": forward_reward,
-            "reward_ctrl": -ctrl_cost,
             "reward_survive": healthy_reward,
+            "penalty_ctrl": ctrl_cost,
             "x_position": xy_position_after[0],
             "y_position": xy_position_after[1],
             "distance_from_origin": np.linalg.norm(xy_position_after, ord=2),
             "x_velocity": x_velocity,
             "y_velocity": y_velocity,
-            "forward_reward": forward_reward,
         }
-        if self._use_contact_forces:
-            contact_cost = self.contact_cost
-            costs += contact_cost
-            info["reward_ctrl"] = -contact_cost
 
-        reward = rewards - costs
-
+        # Render the current simulation frame
         if self.render_mode == "human":
             self.render()
+
         return observation, reward, terminated, False, info
 
     def _get_obs(self):
