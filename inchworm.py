@@ -36,7 +36,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
     followed by the velocities of those individual parts (their derivatives) with all
     the positions ordered before all the velocities.
 
-    By default, an observation is a `ndarray` with shape `(27,)`
+    By default, an observation is a `ndarray` with shape `(12,)`
     where the elements correspond to the following:
 
     | Num | Observation                                                  | Min    | Max    | Name (in corresponding XML file)       | Joint | Unit                     |
@@ -54,32 +54,21 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
     | 10  | angle between the two links on the back left                 | -Inf   | Inf    | ankle_3 (back_leg)                     | hinge | angle (rad)              |
     | 11  | angle between torso and first link on back right             | -Inf   | Inf    | hip_4 (right_back_leg)                 | hinge | angle (rad)              |
     | 12  | angle between the two links on the back right                | -Inf   | Inf    | ankle_4 (right_back_leg)               | hinge | angle (rad)              |
-    | 13  | x-coordinate velocity of the torso                           | -Inf   | Inf    | torso                                  | free  | velocity (m/s)           |
-    | 14  | y-coordinate velocity of the torso                           | -Inf   | Inf    | torso                                  | free  | velocity (m/s)           |
-    | 15  | z-coordinate velocity of the torso                           | -Inf   | Inf    | torso                                  | free  | velocity (m/s)           |
-    | 16  | x-coordinate angular velocity of the torso                   | -Inf   | Inf    | torso                                  | free  | angular velocity (rad/s) |
-    | 17  | y-coordinate angular velocity of the torso                   | -Inf   | Inf    | torso                                  | free  | angular velocity (rad/s) |
-    | 18  | z-coordinate angular velocity of the torso                   | -Inf   | Inf    | torso                                  | free  | angular velocity (rad/s) |
-    | 19  | angular velocity of angle between torso and front left link  | -Inf   | Inf    | hip_1 (front_left_leg)                 | hinge | angle (rad)              |
-    | 20  | angular velocity of the angle between front left links       | -Inf   | Inf    | ankle_1 (front_left_leg)               | hinge | angle (rad)              |
-    | 21  | angular velocity of angle between torso and front right link | -Inf   | Inf    | hip_2 (front_right_leg)                | hinge | angle (rad)              |
-    | 22  | angular velocity of the angle between front right links      | -Inf   | Inf    | ankle_2 (front_right_leg)              | hinge | angle (rad)              |
-    | 23  | angular velocity of angle between torso and back left link   | -Inf   | Inf    | hip_3 (back_leg)                       | hinge | angle (rad)              |
-    | 24  | angular velocity of the angle between back left links        | -Inf   | Inf    | ankle_3 (back_leg)                     | hinge | angle (rad)              |
-    | 25  | angular velocity of angle between torso and back right link  | -Inf   | Inf    | hip_4 (right_back_leg)                 | hinge | angle (rad)              |
-    | 26  | angular velocity of the angle between back right links       | -Inf   | Inf    | ankle_4 (right_back_leg)               | hinge | angle (rad)              |
 
     The (x,y,z) coordinates are translational DOFs while the orientations are rotational
     DOFs expressed as quaternions. One can read more about free joints on the [Mujoco Documentation](https://mujoco.readthedocs.io/en/latest/XMLreference.html).
 
     ## Rewards
     The reward consists of three parts:
+
     - *healthy_reward*: Every timestep that the inchworm is healthy (see definition in section "Episode Termination"), it gets a reward of fixed value `healthy_reward`
+
     - *forward_reward*: A reward of moving forward which is measured as
     *(x-coordinate before action - x-coordinate after action)/dt*. *dt* is the time
     between actions and is dependent on the `frame_skip` parameter (default is 5),
     where the frametime is 0.01 - making the default *dt = 5 * 0.01 = 0.05*.
     This reward would be positive if the inchworm moves forward (in positive x direction).
+
     - *ctrl_cost*: A negative reward for penalising the inchworm if it takes actions
     that are too large. It is measured as *`ctrl_cost_weight` * sum(action<sup>2</sup>)*
     where *`ctr_cost_weight`* is a parameter set for the control and has a default value of 0.5.
@@ -90,38 +79,33 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
 
     ## Starting State
     All observations start in state
-    (0.0, 0.0,  0.75, 1.0, 0.0  ... 0.0) with a uniform noise in the range
+    (0.0, 0.0, 0.0, 0.0, 0.0, ..., 0.0) with a uniform noise in the range
     of [-`reset_noise_scale`, `reset_noise_scale`] added to the positional values and standard normal noise
     with mean 0 and standard deviation `reset_noise_scale` added to the velocity values for
-    stochasticity. The initial orientation
-    is designed to make the inchworm face forward.
+    stochasticity. The initial orientation is designed to make the inchworm face forward.
 
     ## Episode End
     The inchworm is said to be unhealthy if any of the following happens:
 
     1. Any of the state space values is no longer finite
-    2. The z-coordinate of the torso is **not** in the closed interval given by `healthy_z_range` (defaults to [0.2, 1.0])
 
     If `terminate_when_unhealthy=True` is passed during construction (which is the default),
     the episode ends when any of the following happens:
 
     1. Truncation: The episode duration reaches 1000 timesteps
-    2. Termination: The ant is unhealthy
+    2. Termination: The inchworm is unhealthy
 
     If `terminate_when_unhealthy=False` is passed, the episode is ended only when 1000 timesteps are exceeded.
 
     ## Arguments
 
-    | Parameter                  | Type      | Default      | Description                   |
-    |----------------------------|-----------|--------------|-------------------------------|
-    | `xml_file`                 | **str**   | `"ant.xml"`  | Path to a MuJoCo model |
-    | `ctrl_cost_weight`         | **float** | `0.5`        | Weight for *ctrl_cost* term (see section on reward) |
-    | `use_contact_forces`       | **bool**  | `False`      | If true, it extends the observation space by adding contact forces (see `Observation Space` section) and includes contact_cost to the reward function (see `Rewards` section) |
-    | `contact_cost_weight`      | **float** | `5e-4`       | Weight for *contact_cost* term (see section on reward) |
-    | `healthy_reward`           | **float** | `1`          | Constant reward given if the ant is "healthy" after timestep |
-    | `terminate_when_unhealthy` | **bool**  | `True`       | If true, issue a done signal if the inchworm is deemed to be "unhealthy" |
-    | `contact_force_range`      | **tuple** | `(-1, 1)`    | Contact forces are clipped to this range in the computation of *contact_cost* |
-    | `reset_noise_scale`        | **float** | `0.1`        | Scale of random perturbations of initial position and velocity (see section on Starting State) |
+    | Parameter                  | Type      | Default          | Description                   |
+    |----------------------------|-----------|------------------|-------------------------------|
+    | `xml_file`                 | **str**   | `"inchworm.xml"` | Path to a MuJoCo model |
+    | `ctrl_cost_weight`         | **float** | `0.5`            | Weight for *ctrl_cost* term (see section on reward) |
+    | `healthy_reward`           | **float** | `1`              | Constant reward given if the inchworm is "healthy" after timestep |
+    | `terminate_when_unhealthy` | **bool**  | `True`           | If true, issue a done signal if the inchworm is deemed to be "unhealthy" |
+    | `reset_noise_scale`        | **float** | `0.1`            | Scale of random perturbations of initial position and velocity (see section on Starting State) |
     """
 
     metadata = {
@@ -140,11 +124,8 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         self,
         xml_file=inchworm_xml_file,
         ctrl_cost_weight=0.5,
-        use_contact_forces=False,
-        contact_cost_weight=5e-4,
         healthy_reward=1.0,
         terminate_when_unhealthy=True,
-        contact_force_range=(-1.0, 1.0),
         reset_noise_scale=0.1,
         **kwargs,
     ):
@@ -152,33 +133,28 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
             self,
             xml_file,
             ctrl_cost_weight,
-            use_contact_forces,
-            contact_cost_weight,
             healthy_reward,
             terminate_when_unhealthy,
-            contact_force_range,
             reset_noise_scale,
             **kwargs,
         )
 
+        # Store parameters
         self._ctrl_cost_weight = ctrl_cost_weight
-        self._contact_cost_weight = contact_cost_weight
 
         self._healthy_reward = healthy_reward
         self._terminate_when_unhealthy = terminate_when_unhealthy
 
-        self._contact_force_range = contact_force_range
-
         self._reset_noise_scale = reset_noise_scale
 
-        self._use_contact_forces = use_contact_forces
-
-        obs_shape = 27
+        # TODO: why 12?
+        obs_shape = 12
 
         observation_space = Box(
             low=-np.inf, high=np.inf, shape=(obs_shape,), dtype=np.float64
         )
 
+        # How many frames to apply an action for when that action is applied to the environment
         frame_skip = 5
 
         MujocoEnv.__init__(
@@ -203,6 +179,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
 
     @property
     def is_healthy(self):
+        # State vector contains all the positions and velocities
         state = self.state_vector()
         is_healthy = np.isfinite(state).all()
         return is_healthy
@@ -258,15 +235,18 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         return observation, reward, terminated, False, info
 
     def _get_obs(self):
+        # Agent is allowed to sense its various positions and velocities
         position = self.data.qpos.flat.copy()
         velocity = self.data.qvel.flat.copy()
 
         return np.concatenate((position, velocity))
 
     def reset_model(self):
+        # Low and high ends of the random noise that gets added to the initial positions and velocities
         noise_low = -self._reset_noise_scale
         noise_high = self._reset_noise_scale
 
+        # Add noise to the initial positions and velocities
         qpos = self.init_qpos + self.np_random.uniform(
             low=noise_low, high=noise_high, size=self.model.nq
         )

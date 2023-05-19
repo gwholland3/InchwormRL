@@ -4,22 +4,26 @@ from mujoco import MjModel, MjData, viewer, mj_step
 from inchworm import InchwormEnv
 
 
-def demo_program():
-    # env = gym.make("Ant-v4", render_mode="human", xml_file='<INSERT ABSOLUTE PATH TO INCHWORM.XML FILE HERE>')
-    # env = gym.make("Ant-v4", render_mode="human")
+def run_inchworm_simulation():
     env = InchwormEnv(render_mode="human")
 
+    # Must reset the env before making the first call to step()
     observation, info = env.reset()
+
     for _ in range(1000):
+        # Select a random action from the sample space
         action = env.action_space.sample()
+
+        # Apply that action to the environment, store the resulting data
         observation, reward, terminated, truncated, info = env.step(action)
 
-        # if terminated or truncated:
-        #     observation, info = env.reset()
+        # End current iteration if necessary
+        if terminated or truncated:
+            observation, info = env.reset()
     env.close()
 
 
-def inchworm_program():
+def raw_mujoco_program():
     model = MjModel.from_xml_path("inchworm.xml")
     data = MjData(model)
     with viewer.launch_passive(model, data) as view:
@@ -38,4 +42,4 @@ def inchworm_program():
 
 
 if __name__ == "__main__":
-    demo_program()
+    run_inchworm_simulation()
