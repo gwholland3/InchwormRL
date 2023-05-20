@@ -117,6 +117,8 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         "render_fps": 20,
     }
 
+    root_body = "left_middle"
+
     from os import path
     inchworm_xml_file = path.join(path.dirname(__file__), 'inchworm.xml')
 
@@ -190,10 +192,13 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         return terminated
 
     def step(self, action):
+        # Correct the inputs to the adhesion actuators so that they are either 0 (off) or 1 (on)
+        action[3:5] = np.round(action[3:5])
+
         # Record current robot position, apply the action to the simulation, then record the resulting robot position
-        xy_position_before = self.get_body_com("left_middle")[:2].copy()
+        xy_position_before = self.get_body_com(self.root_body)[:2].copy()
         self.do_simulation(action, self.frame_skip)
-        xy_position_after = self.get_body_com("left_middle")[:2].copy()
+        xy_position_after = self.get_body_com(self.root_body)[:2].copy()
 
         # Calculate the robot's current velocity based on its change in position
         xy_velocity = (xy_position_after - xy_position_before) / self.dt
