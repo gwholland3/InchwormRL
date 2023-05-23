@@ -205,6 +205,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         x_velocity, y_velocity = xy_velocity
 
         # Calculate positive rewards
+        # TODO: Make sure forward reward is based on correct velocity
         forward_reward = x_velocity
         healthy_reward = self.healthy_reward
 
@@ -240,7 +241,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         return observation, reward, terminated, False, info
 
     def _get_obs(self):
-        # Agent is allowed to sense its various positions and velocities
+        # Agent is allowed to sense the position and velocity of each DOF across all its joints
         position = self.data.qpos.flat.copy()
         velocity = self.data.qvel.flat.copy()
 

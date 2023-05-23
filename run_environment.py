@@ -6,6 +6,7 @@ from inchworm import InchwormEnv
 
 def run_inchworm_simulation():
     env = InchwormEnv(render_mode="human")
+    agent = None
 
     # Must reset the env before making the first call to step()
     observation, info = env.reset()
