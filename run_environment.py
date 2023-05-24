@@ -1,12 +1,13 @@
 import gymnasium as gym
 import numpy as np
+from tqdm import tqdm
 
 from agent import REINFORCE
 from inchworm import InchwormEnv
 
 
-def run_simulation_with_agent():
-    env = InchwormEnv(render_mode="human")
+def run_simulation_with_agent(render=False):
+    env = InchwormEnv(render_mode=("human" if render else "rgb_array"))
     wrapped_env = gym.wrappers.RecordEpisodeStatistics(env, 50)  # Records episode-reward
 
     total_num_episodes = int(5e3)
@@ -19,7 +20,12 @@ def run_simulation_with_agent():
     agent = REINFORCE(obs_space_dims, action_space_dims)
     reward_over_episodes = []
 
-    for episode in range(total_num_episodes):
+    pbar = tqdm(
+        range(total_num_episodes),
+        unit="eps"
+    )
+
+    for episode in pbar:
         # Must reset the env before making the first call to step()
         observation, info = wrapped_env.reset()
 
@@ -36,9 +42,8 @@ def run_simulation_with_agent():
         reward_over_episodes.append(wrapped_env.return_queue[-1])
         agent.update()
 
-        if episode % 1000 == 0:
-            avg_reward = int(np.mean(wrapped_env.return_queue))
-            print("Episode:", episode, "Average Reward:", avg_reward)
+        avg_reward = int(np.mean(wrapped_env.return_queue))
+        pbar.set_description(f"ep {episode}, avgReward {avg_reward}")
 
     env.close()
 
@@ -63,4 +68,4 @@ def run_simulation_random():
 
 
 if __name__ == "__main__":
-    run_simulation_with_agent()
+    run_simulation_with_agent(False)
