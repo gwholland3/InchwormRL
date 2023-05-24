@@ -149,7 +149,6 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
 
         self._reset_noise_scale = reset_noise_scale
 
-        # TODO: why 12?
         obs_shape = 12
 
         observation_space = Box(
@@ -220,6 +219,10 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         reward = rewards - costs
 
         terminated = self.terminated
+
+        truncated = self.num_steps == 1000
+        self.num_steps += 1
+
         observation = self._get_obs()
 
         # Compile informative statistics to pass back to the caller
@@ -238,7 +241,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         if self.render_mode == "human":
             self.render()
 
-        return observation, reward, terminated, False, info
+        return observation, reward, terminated, truncated, info
 
     def _get_obs(self):
         # Agent is allowed to sense the position and velocity of each DOF across all its joints
@@ -262,6 +265,8 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         )
         # self.set_state(qpos, qvel)
         self.set_state(self.init_qpos, self.init_qvel)
+
+        self.num_steps = 0
 
         observation = self._get_obs()
 
