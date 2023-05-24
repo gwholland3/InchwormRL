@@ -65,7 +65,8 @@ class REINFORCE:
 
         deltas = torch.tensor(gs)
 
-        loss = 0
+        # loss = 0
+        loss = torch.tensor([0.0], requires_grad=True)
         # minimize -1 * prob * reward obtained
         for log_prob, delta in zip(self.probs, deltas):
             loss += log_prob.mean() * delta * (-1)
