@@ -19,10 +19,13 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
     The inchworm is a 2D robot consisting of four links attached in a line, with
     rotational joints between each link. The goal is to coordinate the four links
     to move in the forward (right) direction by applying torques on the three
-    hinges connecting the links together.
+    hinges connecting the links together and controlling the adhesion actuators
+    on the two feet.
 
     ## Action Space
-    The action space is a `Box(-1, 1, (3,), float32)`. An action represents the torques applied at the hinge joints.
+    The action space is a `Box([-1, -1, -1, 0, 0], 1, (5,), float32)`.
+    An action represents the torques applied at the three hinge joints concatenated
+    with the input applied to the two adhesion actuators.
 
     | Num | Action                                                            | Control Min | Control Max | Name (in corresponding XML file) | Joint | Unit         |
     | --- | ----------------------------------------------------------------- | ----------- | ----------- | -------------------------------- | ----- | ------------ |
@@ -41,19 +44,18 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
 
     | Num | Observation                                                  | Min    | Max    | Name (in corresponding XML file)       | Joint | Unit                     |
     |-----|--------------------------------------------------------------|--------|--------|----------------------------------------|-------|--------------------------|
-    | 0   | z-coordinate of the torso (centre)                           | -Inf   | Inf    | torso                                  | free  | position (m)             |
-    | 1   | x-orientation of the torso (centre)                          | -Inf   | Inf    | torso                                  | free  | angle (rad)              |
-    | 2   | y-orientation of the torso (centre)                          | -Inf   | Inf    | torso                                  | free  | angle (rad)              |
-    | 3   | z-orientation of the torso (centre)                          | -Inf   | Inf    | torso                                  | free  | angle (rad)              |
-    | 4   | w-orientation of the torso (centre)                          | -Inf   | Inf    | torso                                  | free  | angle (rad)              |
-    | 5   | angle between torso and first link on front left             | -Inf   | Inf    | hip_1 (front_left_leg)                 | hinge | angle (rad)              |
-    | 6   | angle between the two links on the front left                | -Inf   | Inf    | ankle_1 (front_left_leg)               | hinge | angle (rad)              |
-    | 7   | angle between torso and first link on front right            | -Inf   | Inf    | hip_2 (front_right_leg)                | hinge | angle (rad)              |
-    | 8   | angle between the two links on the front right               | -Inf   | Inf    | ankle_2 (front_right_leg)              | hinge | angle (rad)              |
-    | 9   | angle between torso and first link on back left              | -Inf   | Inf    | hip_3 (back_leg)                       | hinge | angle (rad)              |
-    | 10  | angle between the two links on the back left                 | -Inf   | Inf    | ankle_3 (back_leg)                     | hinge | angle (rad)              |
-    | 11  | angle between torso and first link on back right             | -Inf   | Inf    | hip_4 (right_back_leg)                 | hinge | angle (rad)              |
-    | 12  | angle between the two links on the back right                | -Inf   | Inf    | ankle_4 (right_back_leg)               | hinge | angle (rad)              |
+    | 0   | y-orientation of the left foot                               | -Inf   | Inf    | hc_joint                               | hinge | angle (deg)              |
+    | 1   | x-coordinate of the left foot                                | -Inf   | Inf    | hsx_joint                              | slide | position (m)             |
+    | 2   | z-coordinate of the left foot                                | -Inf   | Inf    | hsz_joint                              | slide | position (m)             |
+    | 3   | angle between the first and second segments                  | -Inf   | Inf    | left_joint                             | hinge | angle (deg)              |
+    | 4   | angle between the second and third segments                  | -Inf   | Inf    | middle_joint                           | hinge | angle (deg)              |
+    | 5   | angle between the third and fourth segments                  | -Inf   | Inf    | right_joint                            | hinge | angle (deg)              |
+    | 6   | y-coordinate angular velocity of the left foot               | -Inf   | Inf    | hc_joint                               | hinge | angular velocity (deg/s) |
+    | 7   | x-coordinate velocity of the left foot                       | -Inf   | Inf    | hsx_joint                              | slide | velocity (m/s)           |
+    | 8   | z-coordinate velocity of the left foot                       | -Inf   | Inf    | hsz_joint                              | slide | velocity (m/s)           |
+    | 9   | angular velocity of angle between first and second segments  | -Inf   | Inf    | left_joint                             | hinge | angular velocity (deg/s) |
+    | 10  | angular velocity of angle between second and third segments  | -Inf   | Inf    | middle_joint                           | hinge | angular velocity (deg/s) |
+    | 11  | angular velocity of angle between third and fourth segments  | -Inf   | Inf    | right_joint                            | hinge | angular velocity (deg/s) |
 
     The (x,y,z) coordinates are translational DOFs while the orientations are rotational
     DOFs expressed as quaternions. One can read more about free joints on the [Mujoco Documentation](https://mujoco.readthedocs.io/en/latest/XMLreference.html).
@@ -69,8 +71,8 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
     where the frametime is 0.01 - making the default *dt = 5 * 0.01 = 0.05*.
     This reward would be positive if the inchworm moves forward (in positive x direction).
 
-    - *ctrl_cost*: A negative reward for penalising the inchworm if it takes actions
-    that are too large. It is measured as *`ctrl_cost_weight` * sum(action<sup>2</sup>)*
+    - *ctrl_cost*: A negative reward for penalising the inchworm if it takes actions for motors
+    that are too large. It is measured as *`ctrl_cost_weight` * sum(action[:3]<sup>2</sup>)*
     where *`ctr_cost_weight`* is a parameter set for the control and has a default value of 0.5.
 
     The total reward returned is ***reward*** *=* *healthy_reward + forward_reward - ctrl_cost*.
@@ -175,7 +177,11 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         )
 
     def control_cost(self, action):
-        control_cost = self._ctrl_cost_weight * np.sum(np.square(action))
+        """
+        Control cost is a penalty for applying large forces to the hinge motors
+        (the first three values of the action)
+        """
+        control_cost = self._ctrl_cost_weight * np.sum(np.square(action[:3]))
         return control_cost
 
     @property
@@ -195,16 +201,14 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         action[3:5] = np.round(action[3:5])
 
         # Record current robot position, apply the action to the simulation, then record the resulting robot position
-        xy_position_before = self.get_body_com(self.root_body)[:2].copy()
+        x_position_before = self.get_body_com(self.root_body)[0].copy()
         self.do_simulation(action, self.frame_skip)
-        xy_position_after = self.get_body_com(self.root_body)[:2].copy()
+        x_position_after = self.get_body_com(self.root_body)[0].copy()
 
-        # Calculate the robot's current velocity based on its change in position
-        xy_velocity = (xy_position_after - xy_position_before) / self.dt
-        x_velocity, y_velocity = xy_velocity
+        # Calculate the robot's forward (x-axis) velocity based on its change in position
+        x_velocity = (x_position_after - x_position_before) / self.dt
 
         # Calculate positive rewards
-        # TODO: Make sure forward reward is based on correct velocity
         forward_reward = x_velocity
         healthy_reward = self.healthy_reward
 
@@ -220,8 +224,8 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
 
         terminated = self.terminated
 
-        truncated = self.num_steps == 1000
         self.num_steps += 1
+        truncated = self.num_steps == 1000
 
         observation = self._get_obs()
 
@@ -230,11 +234,8 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
             "reward_forward": forward_reward,
             "reward_survive": healthy_reward,
             "penalty_ctrl": ctrl_cost,
-            "x_position": xy_position_after[0],
-            "y_position": xy_position_after[1],
-            "distance_from_origin": np.linalg.norm(xy_position_after, ord=2),
+            "x_position": x_position_after,
             "x_velocity": x_velocity,
-            "y_velocity": y_velocity,
         }
 
         # Render the current simulation frame
@@ -263,8 +264,8 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
             self.init_qvel
             + self._reset_noise_scale * self.np_random.standard_normal(self.model.nv)
         )
-        # self.set_state(qpos, qvel)
-        self.set_state(self.init_qpos, self.init_qvel)
+        self.set_state(qpos, qvel)
+        # self.set_state(self.init_qpos, self.init_qvel)
 
         self.num_steps = 0
 
