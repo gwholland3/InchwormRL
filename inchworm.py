@@ -4,7 +4,6 @@ from gymnasium import utils
 from gymnasium.envs.mujoco import MujocoEnv
 from gymnasium.spaces import Box
 
-
 DEFAULT_CAMERA_CONFIG = {
     "distance": 8.0,
 }
@@ -19,7 +18,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
     The inchworm is a 2D robot consisting of four links attached in a line, with
     rotational joints between each link. The goal is to coordinate the four links
     to move in the forward (right) direction by applying torques on the three
-    hinges connecting the links together.
+    hinges connecti ng the links together.
 
     ## Action Space
     The action space is a `Box(-1, 1, (3,), float32)`. An action represents the torques applied at the hinge joints.
@@ -120,7 +119,8 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
     root_body = "left_middle"
 
     from os import path
-    inchworm_xml_file = path.join(path.dirname(__file__), 'inchworm.xml')
+
+    inchworm_xml_file = path.join(path.dirname(__file__), "inchworm.xml")
 
     def __init__(
         self,
