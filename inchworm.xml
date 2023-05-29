@@ -46,7 +46,7 @@
       -->
       <joint name="hc_joint" type="hinge" armature="0" damping="0" limited="false" margin="0.01" pos="3 0 0" axis="0 1 0"/>
       <joint name="hsx_joint" type="slide" armature="0" damping="0" limited="false" margin="0.01" pos="3 0 0" axis="1 0 0"/>
-      <joint name="hsy_joint" type="slide" armature="0" damping="0" limited="false" margin="0.01" pos="3 0 0" axis="0 0 1"/>
+      <joint name="hsz_joint" type="slide" armature="0" damping="0" limited="false" margin="0.01" pos="3 0 0" axis="0 0 1"/>
 
       <!-- Segment 2: Left Middle -->
       <body name="left_middle" pos="2 0 0">

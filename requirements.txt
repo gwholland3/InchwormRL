@@ -1,4 +1,5 @@
 gymnasium[mujoco]==0.28.1
 numpy==1.24.3
+stable-baselines3[extra]==2.0.0a10
 torch==2.0.1
 tqdm==4.65.0

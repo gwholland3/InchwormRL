@@ -27,11 +27,13 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
     An action represents the torques applied at the three hinge joints concatenated
     with the input applied to the two adhesion actuators.
 
-    | Num | Action                                                            | Control Min | Control Max | Name (in corresponding XML file) | Joint | Unit         |
-    | --- | ----------------------------------------------------------------- | ----------- | ----------- | -------------------------------- | ----- | ------------ |
-    | 0   | Torque applied on the rotor between the first and second links    | -1          | 1           | left_joint                       | hinge | torque (N m) |
-    | 1   | Torque applied on the rotor between the second and third links    | -1          | 1           | middle_joint                     | hinge | torque (N m) |
-    | 2   | Torque applied on the rotor between the third and fourth links    | -1          | 1           | right_joint                      | hinge | torque (N m) |
+    | Num | Action                                                            | Control Min | Control Max | Name (in corresponding XML file) | Joint    | Unit         |
+    | --- | ----------------------------------------------------------------- | ----------- | ----------- | -------------------------------- | -------- | ------------ |
+    | 0   | Torque applied on the rotor between the first and second links    | -1          | 1           | left_joint                       | hinge    | torque (N m) |
+    | 1   | Torque applied on the rotor between the second and third links    | -1          | 1           | middle_joint                     | hinge    | torque (N m) |
+    | 2   | Torque applied on the rotor between the third and fourth links    | -1          | 1           | right_joint                      | hinge    | torque (N m) |
+    | 3   | Whether adhesion is activated on the left foot                    | 0           | 1           | left_foot                        | adhesion | force (N) |
+    | 4   | Whether adhesion is activated on the right foot                   | 0           | 1           | right_foot                       | adhesion | force (N) |
 
     ## Observation Space
 
@@ -119,7 +121,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         "render_fps": 20,
     }
 
-    root_body = "left_middle"
+    root_body = "left_foot"
 
     from os import path
     inchworm_xml_file = path.join(path.dirname(__file__), 'inchworm.xml')
@@ -221,6 +223,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
 
         # Calculate total reward to give to the agent
         reward = rewards - costs
+        self.displacement = max(self.displacement, x_position_after)
 
         terminated = self.terminated
 
@@ -268,6 +271,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         # self.set_state(self.init_qpos, self.init_qvel)
 
         self.num_steps = 0
+        self.displacement = self.get_body_com(self.root_body)[0].copy()
 
         observation = self._get_obs()
 

@@ -1,12 +1,33 @@
 import gymnasium as gym
 import numpy as np
+
+from stable_baselines3 import SAC
+from stable_baselines3.common.env_checker import check_env
 from tqdm import tqdm
 
 from agent import REINFORCE
 from inchworm import InchwormEnv
 
 
-def run_simulation_with_agent(render=False):
+def run_simulation_with_sb3_agent(render=False):
+    env = InchwormEnv(render_mode=("human" if render else "rgb_array"))
+    check_env(env)  # Make sure our env is compatible with the interface that stable-baselines3 agents expect
+
+    model = SAC("MlpPolicy", env, verbose=1)
+    model.learn(total_timesteps=30000)
+
+    input("Done. Press enter to view trained agent")
+
+    vec_env = model.get_env()
+    obs = vec_env.reset()
+    for i in range(1000):
+        action, _states = model.predict(obs, deterministic=True)
+        obs, reward, done, info = vec_env.step(action)
+        vec_env.render("human")
+
+    env.close()
+
+def run_simulation_with_custom_agent(render=False):
     env = InchwormEnv(render_mode=("human" if render else "rgb_array"))
     wrapped_env = gym.wrappers.RecordEpisodeStatistics(env, 50)  # Records episode-reward
 
@@ -68,4 +89,6 @@ def run_simulation_random():
 
 
 if __name__ == "__main__":
-    run_simulation_with_agent(False)
+    # run_simulation_random()
+    # run_simulation_with_custom_agent(False)
+    run_simulation_with_sb3_agent(False)
