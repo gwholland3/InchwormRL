@@ -1,3 +1,5 @@
+import os
+import sys
 import gymnasium as gym
 import numpy as np
 
@@ -8,15 +10,48 @@ from tqdm import tqdm
 from agent import REINFORCE
 from inchworm import InchwormEnv
 
-
-def run_simulation_with_sb3_agent(render=False):
+def train_with_sb3_agent(model_name="inchworm_sac", total_timesteps=30000, render=False):
+    model_path = f"test_models/{model_name}.zip"
     env = InchwormEnv(render_mode=("human" if render else "rgb_array"))
     check_env(env)  # Make sure our env is compatible with the interface that stable-baselines3 agents expect
 
-    model = SAC("MlpPolicy", env, verbose=1)
-    model.learn(total_timesteps=30000)
+    try:
+        model = SAC.load(model_path, env)
+        print("Continuing training of saved model")
+    except FileNotFoundError:
+        print("No saved model found, training new model")
+        model = SAC("MlpPolicy", env, verbose=1)
+    model.learn(total_timesteps=total_timesteps)
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    model.save(model_path)
 
-    input("Done. Press enter to view trained agent")
+    if render:
+        input("Done. Press enter to view trained agent")
+
+        vec_env = model.get_env()
+        obs = vec_env.reset()
+        for i in range(1000):
+            action, _states = model.predict(obs, deterministic=True)
+            obs, reward, done, info = vec_env.step(action)
+            vec_env.render("human")
+
+    else:
+        print("Done.")
+
+    env.close()
+
+
+def run_simulation_with_sb3_agent(model_name="inchworm_sac", model_dir="saved_models"):
+    saved_model_path = f"{model_dir}/{model_name}.zip"
+    env = InchwormEnv(render_mode="human")
+    check_env(env)  # Make sure our env is compatible with the interface that stable-baselines3 agents expect
+    
+    try:
+        model = SAC.load(saved_model_path, env)
+        print("Using specified model")
+    except FileNotFoundError:
+        print("Specified model not found")
+        sys.exit(1)
 
     vec_env = model.get_env()
     obs = vec_env.reset()
@@ -91,4 +126,4 @@ def run_simulation_random():
 if __name__ == "__main__":
     # run_simulation_random()
     # run_simulation_with_custom_agent(False)
-    run_simulation_with_sb3_agent(False)
+    train_with_sb3_agent()
