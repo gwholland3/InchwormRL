@@ -11,7 +11,7 @@
   Integrator is for numerical integration, see: https://mujoco.readthedocs.io/en/latest/computation.html#geintegration
   NOTE: timestep must be equal to 1 / (frame_skip * metadata['render_fps'])
   -->
-  <option integrator="RK4" timestep="0.01"/>
+  <option integrator="RK4" timestep="0.002"/>
 
   <!-- Default attribute values for various elements -->
   <default>

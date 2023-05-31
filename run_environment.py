@@ -125,7 +125,8 @@ def run_simulation_random():
 
 if __name__ == "__main__":
     # run_simulation_random()
-    # run_simulation_with_custom_agent(False)
+    # run_simulation_with_custom_agent(True)
 
-    train_with_sb3_agent(model_name="inchworm_sac", total_timesteps=30000)
-    # run_simulation_with_sb3_agent(model_name="inchworm_sac", model_dir="test_models")
+    # train_with_sb3_agent(model_name="inchworm_sac", total_timesteps=1000000)           # train a new model
+    # run_simulation_with_sb3_agent(model_name="inchworm_sac", model_dir="test_models")  # run a local test model
+    run_simulation_with_sb3_agent(model_name="naive_1mtts")                            # run a saved model

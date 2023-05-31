@@ -118,7 +118,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
             "rgb_array",
             "depth_array",
         ],
-        "render_fps": 20,
+        "render_fps": 100,
     }
 
     root_body = "left_foot"
