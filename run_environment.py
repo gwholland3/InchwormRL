@@ -169,8 +169,8 @@ def get_action():
     else:
         action.append(0)
 
-    action.append(1)
-    action.append(-1)
+    action.append(1 if keyboard.is_pressed('[') else -1)
+    action.append(1 if keyboard.is_pressed(']') else -1)
 
     return np.array(action)
 
