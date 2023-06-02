@@ -170,7 +170,7 @@ def get_action():
         action.append(0)
 
     action.append(1)
-    action.append(0)
+    action.append(-1)
 
     return np.array(action)
 

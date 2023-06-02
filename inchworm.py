@@ -171,6 +171,17 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
             **kwargs,
         )
 
+    def _set_action_space(self):
+        """
+        Overriding this method so that we can manually set our action
+        space to be in the range [-1, 1] for all actuators. This consistent
+        and somewhat normalized action space helps the performance of many
+        RL algorithms
+        """
+        num_actuators = self.model.nu
+        self.action_space = Box(low=-1, high=1, shape=(num_actuators,), dtype=np.float32)
+        return self.action_space
+
     @property
     def healthy_reward(self):
         return (
@@ -199,8 +210,13 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         return terminated
 
     def step(self, action):
-        # Correct the inputs to the adhesion actuators so that they are either 0 (off) or 1 (on)
-        action[3:5] = np.round(action[3:5])
+        """
+        Correct the inputs to the adhesion actuators so that
+        they are either 0 (off) or 1 (on). They are given in
+        the range [-1, 1]
+        """
+        rescaled_adhesion_actions = (action[3:5] + 1) / 2  # Rescale to [0, 1]
+        action[3:5] = np.round(rescaled_adhesion_actions)  # Round to 0 or 1
 
         # Record current robot position, apply the action to the simulation, then record the resulting robot position
         x_position_before = self.get_body_com(self.root_body)[0].copy()
