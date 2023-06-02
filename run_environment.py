@@ -1,6 +1,7 @@
 import os
 import sys
 import gymnasium as gym
+import keyboard
 import numpy as np
 
 from stable_baselines3 import SAC
@@ -123,10 +124,63 @@ def run_simulation_random():
     env.close()
 
 
+def run_simulation_control():
+    env = InchwormEnv(render_mode="human")
+
+    # Must reset the env before making the first call to step()
+    observation, info = env.reset()
+
+    while True:
+        # Determine action
+        action = get_action()
+
+        # Break on 'q' press
+        if action is None:
+            break
+
+        # Apply that action to the environment
+        env.step(action)
+    env.close()
+
+
+def get_action():
+    if keyboard.is_pressed('q'):
+        return None
+
+    action = []
+    if keyboard.is_pressed('j'):
+        action.append(1)
+    elif keyboard.is_pressed('u'):
+        action.append(-1)
+    else:
+        action.append(0)
+
+    if keyboard.is_pressed('i'):
+        action.append(1)
+    elif keyboard.is_pressed('k'):
+        action.append(-1)
+    else:
+        action.append(0)
+
+    if keyboard.is_pressed('l'):
+        action.append(1)
+    elif keyboard.is_pressed('o'):
+        action.append(-1)
+    else:
+        action.append(0)
+
+    action.append(1)
+    action.append(0)
+
+    return np.array(action)
+
+
 if __name__ == "__main__":
     # run_simulation_random()
     # run_simulation_with_custom_agent(True)
 
     # train_with_sb3_agent(model_name="inchworm_sac", total_timesteps=1000000)           # train a new model
     # run_simulation_with_sb3_agent(model_name="inchworm_sac", model_dir="test_models")  # run a local test model
-    run_simulation_with_sb3_agent(model_name="naive_1mtts")                            # run a saved model
+    # run_simulation_with_sb3_agent(model_name="naive_1mtts")                            # run a saved model
+
+    run_simulation_control()
