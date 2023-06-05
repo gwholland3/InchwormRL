@@ -284,7 +284,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
             + self._reset_noise_scale * self.np_random.standard_normal(self.model.nv)
         )
         self.set_state(qpos, qvel)
-        # self.set_state(self.init_qpos, self.init_qvel)
+        self.set_state(self.init_qpos, self.init_qvel)
 
         self.num_steps = 0
         self.displacement = self.get_body_com(self.root_body)[0].copy()

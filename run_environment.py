@@ -4,27 +4,32 @@ import gymnasium as gym
 import keyboard
 import numpy as np
 
-from stable_baselines3 import SAC
+from stable_baselines3 import SAC, TD3
 from stable_baselines3.common.env_checker import check_env
+from stable_baselines3.common.base_class import BaseAlgorithm
 from tqdm import tqdm
 
 from agent import REINFORCE
 from inchworm import InchwormEnv
 
-def train_with_sb3_agent(model_name="inchworm_sac", total_timesteps=30000, render=False):
+def train_with_sb3_agent(model_name="inchworm_sac", algorithm: BaseAlgorithm=SAC, total_timesteps=30000, render=False):
     model_path = f"test_models/{model_name}.zip"
     env = InchwormEnv(render_mode=("human" if render else "rgb_array"))
     check_env(env)  # Make sure our env is compatible with the interface that stable-baselines3 agents expect
 
     try:
-        model = SAC.load(model_path, env)
+        model = algorithm.load(model_path, env)
         print("Continuing training of saved model")
     except FileNotFoundError:
         print("No saved model found, training new model")
-        model = SAC("MlpPolicy", env, verbose=1)
-    model.learn(total_timesteps=total_timesteps)
-    os.makedirs(os.path.dirname(model_path), exist_ok=True)
-    model.save(model_path)
+        model = algorithm("MlpPolicy", env, verbose=1)
+    try:
+        model.learn(total_timesteps=total_timesteps)
+    except KeyboardInterrupt:
+        print("Interrupted by user, saving model")
+    finally:
+        os.makedirs(os.path.dirname(model_path), exist_ok=True)
+        model.save(model_path)
 
     if render:
         input("Done. Press enter to view trained agent")
@@ -42,13 +47,13 @@ def train_with_sb3_agent(model_name="inchworm_sac", total_timesteps=30000, rende
     env.close()
 
 
-def run_simulation_with_sb3_agent(model_name="inchworm_sac", model_dir="saved_models"):
+def run_simulation_with_sb3_agent(model_name="inchworm_sac", model_dir="saved_models", algorithm: BaseAlgorithm=SAC):
     saved_model_path = f"{model_dir}/{model_name}.zip"
     env = InchwormEnv(render_mode="human")
     check_env(env)  # Make sure our env is compatible with the interface that stable-baselines3 agents expect
     
     try:
-        model = SAC.load(saved_model_path, env)
+        model = algorithm.load(saved_model_path, env)
         print("Using specified model")
     except FileNotFoundError:
         print("Specified model not found")
@@ -179,8 +184,30 @@ if __name__ == "__main__":
     # run_simulation_random()
     # run_simulation_with_custom_agent(True)
 
-    # train_with_sb3_agent(model_name="inchworm_sac", total_timesteps=1000000)           # train a new model
+    # train_with_sb3_agent(          # train a new model with SAC
+    #     model_name="inchworm_sac",
+    #     algorithm=SAC,
+    #     total_timesteps=2000000
+    # )
+
+    # train_with_sb3_agent(          # train a new model with TD3
+    #     model_name="inchworm_td3",
+    #     algorithm=TD3,
+    #     total_timesteps=2000000
+    # )
+
+    # run_simulation_with_sb3_agent(   # run a local TD3 test model
+    #     model_name="inchworm_td3",
+    #     model_dir="test_models",
+    #     algorithm=TD3
+    # )
+
+    run_simulation_with_sb3_agent(   # run a TD3 saved model
+        model_name="inchworm_td3",
+        algorithm=TD3
+    )
+
     # run_simulation_with_sb3_agent(model_name="inchworm_sac", model_dir="test_models")  # run a local test model
     # run_simulation_with_sb3_agent(model_name="naive_1mtts")                            # run a saved model
 
-    run_simulation_control()
+    # run_simulation_control()
