@@ -1,3 +1,4 @@
+from collections import deque
 import numpy as np
 
 from gymnasium import utils
@@ -133,6 +134,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         healthy_reward=1.0,
         terminate_when_unhealthy=True,
         reset_noise_scale=0.1,
+        velocity_record_length=100,
         **kwargs,
     ):
         utils.EzPickle.__init__(
@@ -162,6 +164,9 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         # How many frames to apply an action for when that action is applied to the environment
         frame_skip = 5
 
+        # Store velocity history to calculate average velocity
+        self.velocity_record = deque(maxlen=velocity_record_length)
+
         MujocoEnv.__init__(
             self,
             xml_file,
@@ -181,6 +186,10 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         num_actuators = self.model.nu
         self.action_space = Box(low=-1, high=1, shape=(num_actuators,), dtype=np.float32)
         return self.action_space
+    
+    @property
+    def avg_velocity(self) -> float:
+        return np.mean(self.velocity_record)
 
     @property
     def healthy_reward(self):
@@ -225,6 +234,9 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
 
         # Calculate the robot's forward (x-axis) velocity based on its change in position
         x_velocity = (x_position_after - x_position_before) / self.dt
+
+        # Record the robot's velocity
+        # self.velocity_record.append(x_velocity)
 
         # Calculate positive rewards
         forward_reward = x_velocity
@@ -284,7 +296,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
             + self._reset_noise_scale * self.np_random.standard_normal(self.model.nv)
         )
         self.set_state(qpos, qvel)
-        self.set_state(self.init_qpos, self.init_qvel)
+        # self.set_state(self.init_qpos, self.init_qvel)
 
         self.num_steps = 0
         self.displacement = self.get_body_com(self.root_body)[0].copy()

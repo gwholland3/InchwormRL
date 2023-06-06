@@ -61,7 +61,7 @@ def run_simulation_with_sb3_agent(model_name="inchworm_sac", model_dir="saved_mo
 
     vec_env = model.get_env()
     obs = vec_env.reset()
-    for i in range(1000):
+    while True:
         action, _states = model.predict(obs, deterministic=True)
         obs, reward, done, info = vec_env.step(action)
         vec_env.render("human")
@@ -193,19 +193,19 @@ if __name__ == "__main__":
     # train_with_sb3_agent(          # train a new model with TD3
     #     model_name="inchworm_td3",
     #     algorithm=TD3,
-    #     total_timesteps=2000000
+    #     total_timesteps=5000000
     # )
 
-    # run_simulation_with_sb3_agent(   # run a local TD3 test model
-    #     model_name="inchworm_td3",
-    #     model_dir="test_models",
-    #     algorithm=TD3
-    # )
-
-    run_simulation_with_sb3_agent(   # run a TD3 saved model
+    run_simulation_with_sb3_agent(   # run a local TD3 test model
         model_name="inchworm_td3",
+        model_dir="test_models",
         algorithm=TD3
     )
+
+    # run_simulation_with_sb3_agent(   # run a TD3 saved model
+    #     model_name="inchworm_td3",
+    #     algorithm=TD3
+    # )
 
     # run_simulation_with_sb3_agent(model_name="inchworm_sac", model_dir="test_models")  # run a local test model
     # run_simulation_with_sb3_agent(model_name="naive_1mtts")                            # run a saved model
