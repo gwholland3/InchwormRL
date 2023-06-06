@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import gymnasium as gym
 import keyboard
 import numpy as np
@@ -25,8 +26,11 @@ def train_with_sb3_agent(model_name="inchworm_sac", algorithm: BaseAlgorithm=SAC
     except FileNotFoundError:
         print("No saved model found, training new model")
         model = algorithm("MlpPolicy", env, verbose=1)
+
+    model.set_random_seed(time.time_ns() % 2**32) # Set random seed to current time
+
     try:
-        model.learn(total_timesteps=total_timesteps)
+        model.learn(total_timesteps=total_timesteps, progress_bar=True)
     except KeyboardInterrupt:
         print("Interrupted by user, saving model")
     finally:
@@ -60,6 +64,8 @@ def run_simulation_with_sb3_agent(model_name="inchworm_sac", model_dir="saved_mo
     except FileNotFoundError:
         print("Specified model not found")
         sys.exit(1)
+
+    model.set_random_seed(time.time_ns() % 2**32) # Set random seed to current time
 
     vec_env = model.get_env()
     obs = vec_env.reset()
