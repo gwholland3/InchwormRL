@@ -125,7 +125,8 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
     root_body = "left_foot"
 
     from os import path
-    inchworm_xml_file = path.join(path.dirname(__file__), 'inchworm.xml')
+
+    inchworm_xml_file = path.join(path.dirname(__file__), "inchworm.xml")
 
     def __init__(
         self,
@@ -184,9 +185,11 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         RL algorithms
         """
         num_actuators = self.model.nu
-        self.action_space = Box(low=-1, high=1, shape=(num_actuators,), dtype=np.float32)
+        self.action_space = Box(
+            low=-1, high=1, shape=(num_actuators,), dtype=np.float32
+        )
         return self.action_space
-    
+
     @property
     def avg_velocity(self) -> float:
         return np.mean(self.velocity_record)

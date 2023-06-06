@@ -15,10 +15,18 @@ from inchworm import InchwormEnv
 
 from glfw import GLFWError
 
-def train_with_sb3_agent(model_name="inchworm_sac", algorithm: BaseAlgorithm=SAC, total_timesteps=30000, render=False):
+
+def train_with_sb3_agent(
+    model_name="inchworm_sac",
+    algorithm: BaseAlgorithm = SAC,
+    total_timesteps=30000,
+    render=False,
+):
     model_path = f"test_models/{model_name}.zip"
     env = InchwormEnv(render_mode=("human" if render else "rgb_array"))
-    check_env(env)  # Make sure our env is compatible with the interface that stable-baselines3 agents expect
+    check_env(
+        env
+    )  # Make sure our env is compatible with the interface that stable-baselines3 agents expect
 
     try:
         model = algorithm.load(model_path, env)
@@ -27,7 +35,7 @@ def train_with_sb3_agent(model_name="inchworm_sac", algorithm: BaseAlgorithm=SAC
         print("No saved model found, training new model")
         model = algorithm("MlpPolicy", env, verbose=1)
 
-    model.set_random_seed(time.time_ns() % 2**32) # Set random seed to current time
+    model.set_random_seed(time.time_ns() % 2 ** 32)  # Set random seed to current time
 
     try:
         model.learn(total_timesteps=total_timesteps, progress_bar=True)
@@ -53,11 +61,15 @@ def train_with_sb3_agent(model_name="inchworm_sac", algorithm: BaseAlgorithm=SAC
     env.close()
 
 
-def run_simulation_with_sb3_agent(model_name="inchworm_sac", model_dir="saved_models", algorithm: BaseAlgorithm=SAC):
+def run_simulation_with_sb3_agent(
+    model_name="inchworm_sac", model_dir="saved_models", algorithm: BaseAlgorithm = SAC
+):
     saved_model_path = f"{model_dir}/{model_name}.zip"
     env = InchwormEnv(render_mode="human")
-    check_env(env)  # Make sure our env is compatible with the interface that stable-baselines3 agents expect
-    
+    check_env(
+        env
+    )  # Make sure our env is compatible with the interface that stable-baselines3 agents expect
+
     try:
         model = algorithm.load(saved_model_path, env)
         print("Using specified model")
@@ -65,7 +77,7 @@ def run_simulation_with_sb3_agent(model_name="inchworm_sac", model_dir="saved_mo
         print("Specified model not found")
         sys.exit(1)
 
-    model.set_random_seed(time.time_ns() % 2**32) # Set random seed to current time
+    model.set_random_seed(time.time_ns() % 2 ** 32)  # Set random seed to current time
 
     vec_env = model.get_env()
     obs = vec_env.reset()
@@ -79,9 +91,12 @@ def run_simulation_with_sb3_agent(model_name="inchworm_sac", model_dir="saved_mo
 
     env.close()
 
+
 def run_simulation_with_custom_agent(render=False):
     env = InchwormEnv(render_mode=("human" if render else "rgb_array"))
-    wrapped_env = gym.wrappers.RecordEpisodeStatistics(env, 50)  # Records episode-reward
+    wrapped_env = gym.wrappers.RecordEpisodeStatistics(
+        env, 50
+    )  # Records episode-reward
 
     total_num_episodes = int(5e3)
 
@@ -93,10 +108,7 @@ def run_simulation_with_custom_agent(render=False):
     agent = REINFORCE(obs_space_dims, action_space_dims)
     reward_over_episodes = []
 
-    pbar = tqdm(
-        range(total_num_episodes),
-        unit="eps"
-    )
+    pbar = tqdm(range(total_num_episodes), unit="eps")
 
     for episode in pbar:
         # Must reset the env before making the first call to step()
@@ -160,33 +172,33 @@ def run_simulation_control():
 
 
 def get_action():
-    if keyboard.is_pressed('q'):
+    if keyboard.is_pressed("q"):
         return None
 
     action = []
-    if keyboard.is_pressed('j'):
+    if keyboard.is_pressed("j"):
         action.append(1)
-    elif keyboard.is_pressed('u'):
+    elif keyboard.is_pressed("u"):
         action.append(-1)
     else:
         action.append(0)
 
-    if keyboard.is_pressed('i'):
+    if keyboard.is_pressed("i"):
         action.append(1)
-    elif keyboard.is_pressed('k'):
+    elif keyboard.is_pressed("k"):
         action.append(-1)
     else:
         action.append(0)
 
-    if keyboard.is_pressed('l'):
+    if keyboard.is_pressed("l"):
         action.append(1)
-    elif keyboard.is_pressed('o'):
+    elif keyboard.is_pressed("o"):
         action.append(-1)
     else:
         action.append(0)
 
-    action.append(1 if keyboard.is_pressed('[') else -1)
-    action.append(1 if keyboard.is_pressed(']') else -1)
+    action.append(1 if keyboard.is_pressed("[") else -1)
+    action.append(1 if keyboard.is_pressed("]") else -1)
 
     return np.array(action)
 
@@ -213,9 +225,8 @@ if __name__ == "__main__":
     #     algorithm=TD3
     # )
 
-    run_simulation_with_sb3_agent(   # run a TD3 saved model
-        model_name="inchworm1.0_td3",
-        algorithm=TD3
+    run_simulation_with_sb3_agent(  # run a TD3 saved model
+        model_name="inchworm1.0_td3", algorithm=TD3
     )
 
     # run_simulation_with_sb3_agent(model_name="inchworm_sac", model_dir="test_models")  # run a local test model
