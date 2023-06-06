@@ -12,6 +12,8 @@ from tqdm import tqdm
 from agent import REINFORCE
 from inchworm import InchwormEnv
 
+from glfw import GLFWError
+
 def train_with_sb3_agent(model_name="inchworm_sac", algorithm: BaseAlgorithm=SAC, total_timesteps=30000, render=False):
     model_path = f"test_models/{model_name}.zip"
     env = InchwormEnv(render_mode=("human" if render else "rgb_array"))
@@ -62,9 +64,12 @@ def run_simulation_with_sb3_agent(model_name="inchworm_sac", model_dir="saved_mo
     vec_env = model.get_env()
     obs = vec_env.reset()
     while True:
-        action, _states = model.predict(obs, deterministic=True)
-        obs, reward, done, info = vec_env.step(action)
-        vec_env.render("human")
+        try:
+            action, _states = model.predict(obs, deterministic=True)
+            obs, reward, done, info = vec_env.step(action)
+            vec_env.render("human")
+        except KeyboardInterrupt:
+            break
 
     env.close()
 
@@ -196,16 +201,16 @@ if __name__ == "__main__":
     #     total_timesteps=5000000
     # )
 
-    run_simulation_with_sb3_agent(   # run a local TD3 test model
-        model_name="inchworm_td3",
-        model_dir="test_models",
-        algorithm=TD3
-    )
-
-    # run_simulation_with_sb3_agent(   # run a TD3 saved model
+    # run_simulation_with_sb3_agent(   # run a local TD3 test model
     #     model_name="inchworm_td3",
+    #     model_dir="test_models",
     #     algorithm=TD3
     # )
+
+    run_simulation_with_sb3_agent(   # run a TD3 saved model
+        model_name="inchworm1.0_td3",
+        algorithm=TD3
+    )
 
     # run_simulation_with_sb3_agent(model_name="inchworm_sac", model_dir="test_models")  # run a local test model
     # run_simulation_with_sb3_agent(model_name="naive_1mtts")                            # run a saved model
