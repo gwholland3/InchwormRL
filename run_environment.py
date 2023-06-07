@@ -173,7 +173,7 @@ if __name__ == "__main__":
     # train_with_sb3_agent(          # train a new model with TD3
     #     model_name="inchworm_td3",
     #     algorithm=TD3,
-    #     total_timesteps=5000000
+    #     total_timesteps=10000000
     # )
 
     # run_simulation_with_sb3_agent(   # run a local TD3 test model
@@ -182,8 +182,9 @@ if __name__ == "__main__":
     #     algorithm=TD3
     # )
 
-    run_simulation_with_sb3_agent(  # run a TD3 saved model
-        model_name="inchworm1.0_td3", algorithm=TD3
+    run_simulation_with_sb3_agent(   # run a TD3 saved model
+        model_name="inchworm1.1_td3",
+        algorithm=TD3
     )
 
     # run_simulation_with_sb3_agent(model_name="inchworm_sac", model_dir="test_models")  # run a local test model

@@ -134,7 +134,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         ctrl_cost_weight=0.5,
         healthy_reward=1.0,
         terminate_when_unhealthy=True,
-        reset_noise_scale=0.2,  # 0.1
+        reset_noise_scale=0.1,
         velocity_record_length=100,
         **kwargs,
     ):
