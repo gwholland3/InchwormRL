@@ -38,10 +38,9 @@
     <geom conaffinity="1" condim="3" material="MatPlane" name="floor" pos="0 0 0" rgba="0.8 0.9 0.8 1" size="400 40 1" type="plane" />
 
     <!-- Segment 1: Left Foot -->
-    <body name="left_foot" pos="-3 0 1">
-      <geom type="cylinder" mass="0" size="0.2" fromto="-1 -0.2 0 -1 0.2 0"/>
-      <geom type="box" size="1 0.2 0.2" rgba="0.8 0 0 1" />
-      <geom type="cylinder" mass="0" size="0.2" fromto="1 -0.2 0 1 0.2 0"/>
+    <body name="left_foot" pos="0 0 1">
+      <geom type="cylinder" mass="0" size="0.2" fromto="-0.5 -0.2 0 -0.5 0.2 0" rgba="0.8 0 0 1"/>
+      <geom type="box" size="0.5 0.2 0.2" rgba="0.8 0 0 1"/>
 
       <!--
       These three joints allow the first segment, which is the root segment of the inchworm,
@@ -52,11 +51,12 @@
       <joint name="hsz_joint" type="slide" armature="0" damping="0" limited="false" margin="0.01" pos="3 0 0" axis="0 0 1" />
 
       <!-- Segment 2: Left Middle -->
-      <body name="left_middle" pos="2 0 0">
+      <body name="left_middle" pos="1.5 0 0">
         <camera name="track" mode="trackcom" pos="1 -10 0.3" xyaxes="1 0 0 0 0 1"/>
 
+        <geom type="cylinder" mass="0" size="0.2" fromto="-1 -0.2 0 -1 0.2 0" rgba="0 0.8 0 1"/>
         <geom type="box" size="1 0.2 0.2" rgba="0 0.8 0 1"/>
-        <geom type="cylinder" mass="0" size="0.2" fromto="1 -0.2 0 1 0.2 0"/>
+        <geom type="cylinder" mass="0" size="0.2" fromto="1 -0.2 0 1 0.2 0" rgba="0 0.8 0 1"/>
 
         <!-- This joint allows the second segment to hinge off the first -->
         
@@ -65,20 +65,20 @@
         <!-- Segment 3: Right Middle -->
         <body name="right_middle" pos="2 0 0">
           <geom type="box" size="1 0.2 0.2" rgba="0 0 0.8 1"/>
-          <geom type="cylinder" mass="0" size="0.2" fromto="1 -0.2 0 1 0.2 0"/>
+          <geom type="cylinder" mass="0" size="0.2" fromto="1 -0.2 0 1 0.2 0" rgba="0 0 0.8 1"/>
 
           <!-- This joint allows the third segment to hinge off the second -->
           <joint name="middle_joint" type="hinge" pos="-1 0 0" axis="0 1 0" range="0 150" />
 
           <!-- Segment 4: Right Foot -->
-          <body name="right_foot" pos="2 0 0">
+          <body name="right_foot" pos="1.5 0 0">
           
-            <geom type="box" size="1 0.2 0.2" rgba="0.8 0.8 0 1" />
-            <geom type="cylinder" mass="0" size="0.2" fromto="1 -0.2 0 1 0.2 0"/>
+            <geom type="box" size="0.5 0.2 0.2" rgba="0.8 0.8 0 1" />
+            <geom type="cylinder" mass="0" size="0.2" fromto="0.5 -0.2 0 0.5 0.2 0" rgba="0.8 0.8 0 1"/>
 
             <!-- This joint allows the fourth segment to hinge off the third -->
             
-            <joint name="right_joint" type="hinge" pos="-1 0 0" axis="0 1 0" range="-90 0" />
+            <joint name="right_joint" type="hinge" pos="-0.5 0 0" axis="0 1 0" range="-90 0" />
             
           </body>
         </body>
