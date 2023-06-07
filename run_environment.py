@@ -1,22 +1,21 @@
 import os
 import sys
 import time
-import gymnasium as gym
 import keyboard
 import numpy as np
 
+from typing import Type, TypeVar
+
 from stable_baselines3 import SAC, TD3
 from stable_baselines3.common.env_checker import check_env
-from stable_baselines3.common.base_class import BaseAlgorithm
 
 from inchworm import InchwormEnv
 
 
 def train_with_sb3_agent(
-    model_name="inchworm_sac",
-    algorithm: BaseAlgorithm = SAC,
+    model_name="inchworm_td3",
     total_timesteps=30000,
-    render=False,
+    render=False
 ):
     model_path = f"test_models/{model_name}.zip"
     env = InchwormEnv(render_mode=("human" if render else "rgb_array"))
@@ -25,16 +24,16 @@ def train_with_sb3_agent(
     )  # Make sure our env is compatible with the interface that stable-baselines3 agents expect
 
     try:
-        model = algorithm.load(model_path, env)
+        model = TD3.load(model_path, env)
         print("Continuing training of saved model")
     except FileNotFoundError:
         print("No saved model found, training new model")
-        model = algorithm("MlpPolicy", env, verbose=1)
+        model = TD3("MlpPolicy", env, verbose=1, learning_rate=0.0003)
 
     model.set_random_seed(time.time_ns() % 2 ** 32)  # Set random seed to current time
 
     try:
-        model.learn(total_timesteps=total_timesteps, progress_bar=True)
+        model.learn(total_timesteps, progress_bar=True)
     except KeyboardInterrupt:
         print("Interrupted by user, saving model")
     finally:
@@ -45,7 +44,9 @@ def train_with_sb3_agent(
         input("Done. Press enter to view trained agent")
 
         vec_env = model.get_env()
+        assert vec_env is not None
         obs = vec_env.reset()
+
         for i in range(1000):
             action, _states = model.predict(obs, deterministic=True)
             obs, reward, done, info = vec_env.step(action)
@@ -58,7 +59,8 @@ def train_with_sb3_agent(
 
 
 def run_simulation_with_sb3_agent(
-    model_name="inchworm_sac", model_dir="saved_models", algorithm: BaseAlgorithm = SAC
+    model_name="inchworm_td3",
+    model_dir="saved_models"
 ):
     saved_model_path = f"{model_dir}/{model_name}.zip"
     env = InchwormEnv(render_mode="human")
@@ -67,7 +69,7 @@ def run_simulation_with_sb3_agent(
     )  # Make sure our env is compatible with the interface that stable-baselines3 agents expect
 
     try:
-        model = algorithm.load(saved_model_path, env)
+        model = TD3.load(saved_model_path, env)
         print("Using specified model")
     except FileNotFoundError:
         print("Specified model not found")
@@ -76,7 +78,9 @@ def run_simulation_with_sb3_agent(
     model.set_random_seed(time.time_ns() % 2 ** 32)  # Set random seed to current time
 
     vec_env = model.get_env()
+    assert vec_env is not None
     obs = vec_env.reset()
+
     while True:
         try:
             action, _states = model.predict(obs, deterministic=True)
@@ -161,30 +165,18 @@ def get_action():
 if __name__ == "__main__":
     # run_simulation_random()
 
-    # train_with_sb3_agent(          # train a new model with SAC
-    #     model_name="inchworm_sac",
-    #     algorithm=SAC,
-    #     total_timesteps=2000000
-    # )
-
     # train_with_sb3_agent(          # train a new model with TD3
     #     model_name="inchworm_td3",
-    #     algorithm=TD3,
     #     total_timesteps=10000000
     # )
 
     # run_simulation_with_sb3_agent(   # run a local TD3 test model
     #     model_name="inchworm_td3",
-    #     model_dir="test_models",
-    #     algorithm=TD3
+    #     model_dir="test_models"
     # )
 
     run_simulation_with_sb3_agent(   # run a TD3 saved model
-        model_name="inchworm1.1_td3",
-        algorithm=TD3
+        model_name="inchworm2.0_td3"
     )
-
-    # run_simulation_with_sb3_agent(model_name="inchworm_sac", model_dir="test_models")  # run a local test model
-    # run_simulation_with_sb3_agent(model_name="naive_1mtts")                            # run a saved model
 
     # run_simulation_control()

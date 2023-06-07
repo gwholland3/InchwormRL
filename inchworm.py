@@ -2,7 +2,7 @@ from collections import deque
 import numpy as np
 
 from gymnasium import utils
-from gymnasium.envs.mujoco import MujocoEnv
+from gymnasium.envs.mujoco.mujoco_env import MujocoEnv
 from gymnasium.spaces import Box
 
 
@@ -135,7 +135,8 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         healthy_reward=1.0,
         terminate_when_unhealthy=True,
         reset_noise_scale=0.1,
-        velocity_record_length=100,
+        velocity_record_length=200,
+        avg_velocity_min_threshold=0.05,
         **kwargs,
     ):
         utils.EzPickle.__init__(
@@ -166,7 +167,8 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         frame_skip = 5
 
         # Store velocity history to calculate average velocity
-        self.velocity_record = deque(maxlen=velocity_record_length)
+        self.velocity_record: deque[int] = deque(maxlen=velocity_record_length)
+        self.avg_velocity_min_threshold = avg_velocity_min_threshold
 
         MujocoEnv.__init__(
             self,
@@ -191,14 +193,15 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         return self.action_space
 
     @property
-    def avg_velocity(self) -> float:
-        return np.mean(self.velocity_record)
+    def avg_velocity(self):
+        return np.mean(list(self.velocity_record))
 
     @property
     def healthy_reward(self):
         return (
-            float(self.is_healthy or self._terminate_when_unhealthy)
-            * self._healthy_reward
+            float(
+                self.is_healthy or self._terminate_when_unhealthy
+            ) * self._healthy_reward
         )
 
     def control_cost(self, action):
@@ -213,7 +216,11 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
     def is_healthy(self):
         # State vector contains all the positions and velocities
         state = self.state_vector()
-        is_healthy = np.isfinite(state).all()
+        assert self.velocity_record.maxlen is not None
+        is_finite = np.isfinite(state).all()
+        vel_record_full = len(self.velocity_record) >= self.velocity_record.maxlen
+        vel_meets_threshold = self.avg_velocity >= self.avg_velocity_min_threshold
+        is_healthy = is_finite and (not vel_record_full or vel_meets_threshold)
         return is_healthy
 
     @property
@@ -231,15 +238,19 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         action[3:5] = np.round(rescaled_adhesion_actions)  # Round to 0 or 1
 
         # Record current robot position, apply the action to the simulation, then record the resulting robot position
-        x_position_before = self.get_body_com(self.root_body)[0].copy()
+        xpos_before, _, zpos_before = self.get_body_com(self.root_body).copy()
         self.do_simulation(action, self.frame_skip)
-        x_position_after = self.get_body_com(self.root_body)[0].copy()
+        xpos_after, _, zpos_after = self.get_body_com(self.root_body).copy()
 
         # Calculate the robot's forward (x-axis) velocity based on its change in position
-        x_velocity = (x_position_after - x_position_before) / self.dt
+        x_velocity = (xpos_after - xpos_before) / self.dt
+
+        # Calculate the robot's magnitude of velocity
+        disp = np.array([xpos_after - xpos_before, zpos_after - zpos_before])
+        velocity_magnitude = np.sqrt(np.sum(np.square(disp))) / self.dt
 
         # Record the robot's velocity
-        # self.velocity_record.append(x_velocity)
+        self.velocity_record.append(velocity_magnitude)
 
         # Calculate positive rewards
         forward_reward = x_velocity
@@ -254,7 +265,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
 
         # Calculate total reward to give to the agent
         reward = rewards - costs
-        self.displacement = max(self.displacement, x_position_after)
+        self.displacement = max(self.displacement, xpos_after)
 
         terminated = self.terminated
 
@@ -268,7 +279,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
             "reward_forward": forward_reward,
             "reward_survive": healthy_reward,
             "penalty_ctrl": ctrl_cost,
-            "x_position": x_position_after,
+            "x_position": xpos_after,
             "x_velocity": x_velocity,
         }
 
@@ -296,13 +307,16 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         )
         qvel = (
             self.init_qvel
-            + self._reset_noise_scale * self.np_random.standard_normal(self.model.nv)
+            + self._reset_noise_scale
+            * self.np_random.standard_normal(self.model.nv)
         )
         self.set_state(qpos, qvel)
         # self.set_state(self.init_qpos, self.init_qvel)
 
         self.num_steps = 0
         self.displacement = self.get_body_com(self.root_body)[0].copy()
+
+        self.velocity_record.clear()
 
         observation = self._get_obs()
 
