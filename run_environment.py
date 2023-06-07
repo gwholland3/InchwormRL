@@ -8,11 +8,8 @@ import numpy as np
 from stable_baselines3 import SAC, TD3
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.base_class import BaseAlgorithm
-from tqdm import tqdm
 
 from inchworm import InchwormEnv
-
-from glfw import GLFWError
 
 
 def train_with_sb3_agent(
