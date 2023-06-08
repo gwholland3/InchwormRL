@@ -105,7 +105,7 @@ def run_simulation_random():
         # Apply that action to the environment, store the resulting data
         observation, reward, terminated, truncated, info = env.step(action)
 
-        # End current iteration if necessary
+        # End current episode if necessary
         if terminated or truncated:
             observation, info = env.reset()
     env.close()

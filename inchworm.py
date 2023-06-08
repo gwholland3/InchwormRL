@@ -318,6 +318,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
 
         self.velocity_record.clear()
 
+        # Retrieve and return the first observation of the reset environment
         observation = self._get_obs()
 
         return observation
