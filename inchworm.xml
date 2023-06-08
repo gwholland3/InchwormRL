@@ -1,11 +1,8 @@
 <!--An inchworm xml environment in MuJoCo-->
 
 <mujoco model="2d_inchworm">
-  <!--
-  `inertiafromgeom` specifies whether body masses and inertias are inferred from their attached geoms
-  or defined by explicit attribute values
-  -->
-  <compiler angle="degree" inertiafromgeom="true" />
+  <!-- All angles are expressed in degrees -->
+  <compiler angle="degree" />
 
   <!--
   `integrator` is for numerical integration, see: https://mujoco.readthedocs.io/en/latest/computation.html#geintegration
@@ -20,14 +17,14 @@
       <joint type="hinge" armature="1" damping="1" limited="true" axis="0 1 0"/>
     </default>
 
-    <geom conaffinity="0" condim="3" density="5.0" friction="1 1 1" margin="0.01" rgba="0.8 0.4 0.8 1" />
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" gear="100" />
+    <geom density="5" margin="0.01" />
+    <motor ctrllimited="true" ctrlrange="-1 1" gear="100" />
   </default>
 
   <!-- Visual textures and materials -->
   <asset>
     <!-- The skybox texture -->
-    <texture builtin="gradient" height="100" rgb1="1 1 1" rgb2="0 0 0" type="skybox" width="100" />
+    <texture builtin="gradient" type="skybox" rgb1="1 1 1" rgb2="0 0 0" height="100" width="100" />
 
     <!--
     The checker texture used for the floor material.
@@ -53,12 +50,25 @@
     According to MuJoCo docs, the third size parameter for a plane represents
     the spacing between square grid lines for rendering, but not sure what that means.
     -->
-    <geom type="plane" size="0 8 1" conaffinity="1" condim="3" material="checker_mat" rgba="0.8 0.9 0.8 1" />
+    <geom type="plane" size="0 8 1" material="checker_mat" rgba="0.8 0.9 0.8 1" />
 
     <!-- Segment 1: Left Foot -->
     <body name="left_foot" pos="0 0 1">
-      <geom type="cylinder" mass="0" size="0.2" fromto="-0.5 -0.201 0 -0.5 0.201 0" rgba="0.8 0 0 1"/>
-      <geom type="box" size="0.5 0.2 0.2" rgba="0.8 0 0 1"/>
+      <!-- Left end of foot -->
+      <geom type="cylinder" mass="0" size="0.225" fromto="-0.5 -0.201 0 -0.5 0.201 0" rgba="0.8 0 0 1"/>
+
+      <!-- Top of foot -->
+      <geom type="box" pos="0 0 0.025" size="0.5 0.2 0.2" rgba="0.8 0 0 1"/>
+
+      <!-- Bottom of foot -->
+      <geom type="box" pos="-0.425 0 -0.2" size="0.075 0.2 0.025" rgba="0.8 0 0 1"/>
+      <body name="left_gripper" pos="0 0 -0.2">
+        <geom type="box" size="0.35 0.2 0.025" margin="0.04" gap="0.03" rgba="0 0.5 0.8 1"/>
+      </body>
+      <geom type="box" pos="0.425 0 -0.2" size="0.075 0.2 0.025" rgba="0.8 0 0 1"/>
+
+      <!-- Right end of foot -->
+      <geom type="cylinder" mass="0" size="0.225" fromto="0.5 -0.201 0 0.5 0.201 0" rgba="0.8 0 0 1"/>
 
       <!--
       These three joints allow the first segment, which is the root segment of the inchworm,
@@ -74,7 +84,7 @@
         <!-- Camera to track the inchworm body (fixed on the left_middle body segment) -->
         <camera name="track" mode="trackcom" pos="1 -10 0.3" xyaxes="1 0 0 0 0 1"/>
 
-        <geom type="cylinder" mass="0" size="0.2" fromto="-1 -0.201 0 -1 0.201 0" rgba="0 0.8 0 1"/>
+<!--        <geom type="cylinder" mass="0" size="0.2" fromto="-1 -0.201 0 -1 0.201 0" rgba="0 0.8 0 1"/>-->
         <geom type="box" size="1 0.2 0.2" rgba="0 0.8 0 1"/>
         <geom type="cylinder" mass="0" size="0.2" fromto="1 -0.201 0 1 0.201 0" rgba="0 0 0.8 1"/>
 
@@ -84,15 +94,30 @@
         <!-- Segment 3: Right Middle -->
         <body name="right_middle" pos="2 0 0">
           <geom type="box" size="1 0.2 0.2" rgba="0 0 0.8 1"/>
-          <geom type="cylinder" mass="0" size="0.2" fromto="1 -0.201 0 1 0.201 0" rgba="0.8 0.8 0 1"/>
 
           <!-- This joint allows the third segment to hinge off the second -->
           <joint name="middle_joint" class="connector_joint" pos="-1 0 0" range="0 150" />
 
           <!-- Segment 4: Right Foot -->
           <body name="right_foot" pos="1.5 0 0">
-            <geom type="box" size="0.5 0.2 0.2" rgba="0.8 0.8 0 1"/>
-            <geom type="cylinder" mass="0" size="0.2" fromto="0.5 -0.201 0 0.5 0.201 0" rgba="0.8 0.8 0 1"/>
+            <!-- Left end of foot -->
+            <geom type="cylinder" mass="0" size="0.225" fromto="-0.5 -0.201 0 -0.5 0.201 0" rgba="0.8 0.8 0 1"/>
+
+            <!-- Top of foot -->
+            <geom type="box" pos="0 0 0.025" size="0.5 0.2 0.2" rgba="0.8 0.8 0 1"/>
+
+            <!-- Bottom of foot -->
+            <geom type="box" pos="-0.425 0 -0.2" size="0.075 0.2 0.025" rgba="0.8 0.8 0 1"/>
+
+            <body name="right_gripper" pos="0 0 -0.2">
+              <geom type="box" size="0.35 0.2 0.025" margin="0.04" gap="0.03" rgba="0 0.5 0.8 1"/>
+            </body>
+<!--            <geom type="box" pos="0 0 -0.2" size="0.35 0.2 0.025" rgba="0 0.5 0.8 1"/>-->
+
+            <geom type="box" pos="0.425 0 -0.2" size="0.075 0.2 0.025" rgba="0.8 0.8 0 1"/>
+
+            <!-- Right end of foot -->
+            <geom type="cylinder" mass="0" size="0.225" fromto="0.5 -0.201 0 0.5 0.201 0" rgba="0.8 0.8 0 1"/>
 
             <!-- This joint allows the fourth segment to hinge off the third -->
             <joint name="right_joint" class="connector_joint" pos="-0.5 0 0" range="-90 0" />
@@ -111,7 +136,7 @@
     <motor joint="right_joint" />
 
     <!-- Adhesion for the two feet (`gain` is the force of the adhesion) -->
-    <adhesion body="left_foot" ctrlrange="0 1" forcelimited="false" gain="10000" />
-    <adhesion body="right_foot" ctrlrange="0 1" forcelimited="false" gain="10000" />
+    <adhesion body="left_gripper" ctrlrange="0 1" forcelimited="false" gain="5000" />
+    <adhesion body="right_gripper" ctrlrange="0 1" forcelimited="false" gain="5000" />
   </actuator>
 </mujoco>
