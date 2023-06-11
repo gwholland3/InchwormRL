@@ -1,9 +1,11 @@
 # InchwormRL
-For CSC 480.
+This project is for CSC 480 at Cal Poly, taught by Professor Rodrigo Canaan.
 
-Gymnasium GitHub repo: https://github.com/Farama-Foundation/Gymnasium  
-Gymnasium documentation: https://gymnasium.farama.org/  
-MuJoCo documentation: https://mujoco.readthedocs.io/en/latest/overview.html
+## External Resources
+
+MuJoCo physics engine: https://mujoco.readthedocs.io/en/stable/overview.html
+Gymnasium RL framework: https://gymnasium.farama.org/  
+Stable Baselines3 RL algorithms: https://stable-baselines3.readthedocs.io/en/master/index.html
 
 ## Setup
 
@@ -22,7 +24,7 @@ We recommend doing this in a fresh Python virtual environment. Cd into the repo 
 
 `pip3 install -r requirements.txt`
 
-## Run the Environment
-To run the MuJoCo environment, run: 
+## Interacting With the Project
+Our whole project has a single entry point, `run_environment.py`. You can control the functionality via command-line arguments to Python script.
 
 `python3 run_environment.py`
