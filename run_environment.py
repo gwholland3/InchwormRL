@@ -256,7 +256,13 @@ if __name__ == "__main__":
         "-T", "--total-timesteps",
         type=int,
         default=1_000_000,
-        help="total number of timesteps to train the model for",
+        help="total number of timesteps to train the model for (default: 1,000,000)",
+    )
+    group4.add_argument(
+        "-l", "--learning-rate",
+        type=float,
+        default=0.0003,
+        help="learning rate for training the model (default: 0.0003)",
     )
     args = parser.parse_args()
 
@@ -267,7 +273,8 @@ if __name__ == "__main__":
             parser.error("argument -t/--train cannot be used with -s/--saved-dir (cannot train a model in the saved_models/ directory)")
         train_with_sb3_agent(
             model_name=args.model_name,
-            total_timesteps=args.total_timesteps
+            total_timesteps=args.total_timesteps,
+            learning_rate=args.learning_rate
         )
     elif args.run:
         if args.model_name is None:

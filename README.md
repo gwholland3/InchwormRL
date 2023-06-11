@@ -47,7 +47,7 @@ Train a new model (inchworm3.1_td3) with 10,000,000 timesteps:
 `python3 run_environment.py -tm inchworm3.1_td3 -T 10000000`
 
 ```
-usage: run_environment.py [-h] (-t | -r | -R | -c) [-m MODEL_NAME] [-s] [-e] [-o] [-T TOTAL_TIMESTEPS]
+usage: run_environment.py [-h] (-t | -r | -R | -c) [-m MODEL_NAME] [-s] [-e] [-o] [-T TOTAL_TIMESTEPS] [-l LEARNING_RATE]
 
 Run or train an agent to control an inchworm robot
 
@@ -65,12 +65,13 @@ Training and running arguments:
                         name of the model to run (minus the .zip extension)
 
 Running arguments:
-  -s, --saved-dir       whether the model will be/is in the saved_models/ directory (otherwise
-                        test_models/)
+  -s, --saved-dir       whether the model will be/is in the saved_models/ directory (otherwise test_models/)
   -e, --eval            whether to print out evaluation data while running the simulation
   -o, --old-model       whether the model was trained with the old version of the Inchworm environment
 
 Training arguments:
   -T TOTAL_TIMESTEPS, --total-timesteps TOTAL_TIMESTEPS
-                        total number of timesteps to train the model for
+                        total number of timesteps to train the model for (default: 1,000,000)
+  -l LEARNING_RATE, --learning-rate LEARNING_RATE
+                        learning rate for training the model (default: 0.0003)
 ```
