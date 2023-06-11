@@ -32,10 +32,22 @@ We recommend doing this in a fresh Python virtual environment. Cd into the repo 
 
 Our whole project has a single entry point, `run_environment.py`. You can control the functionality via command-line arguments to Python script.
 
+### Examples
+
+Run an existing trained model (inchworm3.0_td3) and print evaluation data:
+
 `python3 run_environment.py -rsem inchworm3.0_td3`
 
+Run an existing trained model (inchworm2.1_td3) on the old Inchworm environment:
+
+`python3 run_environment.py -rsom inchworm2.1_td3`
+
+Train a new model (inchworm3.1_td3) with 10,000,000 timesteps:
+
+`python3 run_environment.py -tm inchworm3.1_td3 -T 10000000`
+
 ```
-usage: run_environment.py [-h] (-t | -r | -R | -c) [-m MODEL_NAME] [-s] [-o] [-e] [-T TOTAL_TIMESTEPS]
+usage: run_environment.py [-h] (-t | -r | -R | -c) [-m MODEL_NAME] [-s] [-e] [-o] [-T TOTAL_TIMESTEPS]
 
 Run or train an agent to control an inchworm robot
 
@@ -43,7 +55,7 @@ options:
   -h, --help            show this help message and exit
 
 Functional arguments (mutually exclusive):
-  -t, --train           train a model with the TD3 algorithm (using existing models continues training)
+  -t, --train           train a new/existing model in test_models/ with the TD3 algorithm
   -r, --run             run a model with the TD3 algorithm
   -R, --random          run the environment with random actions
   -c, --control         run the environment with user control
@@ -51,12 +63,12 @@ Functional arguments (mutually exclusive):
 Training and running arguments:
   -m MODEL_NAME, --model-name MODEL_NAME
                         name of the model to run (minus the .zip extension)
-  -s, --saved-dir       whether the model will be/is in the saved_models/ directory (otherwise
-                        test_models/)
 
 Running arguments:
-  -o, --old-model       whether the model was trained with the old version of the Inchworm environment
+  -s, --saved-dir       whether the model will be/is in the saved_models/ directory (otherwise
+                        test_models/)
   -e, --eval            whether to print out evaluation data while running the simulation
+  -o, --old-model       whether the model was trained with the old version of the Inchworm environment
 
 Training arguments:
   -T TOTAL_TIMESTEPS, --total-timesteps TOTAL_TIMESTEPS

@@ -212,7 +212,7 @@ if __name__ == "__main__":
     group1e.add_argument(
         "-t", "--train",
         action="store_true",
-        help="train a model with the TD3 algorithm (using existing models continues training)",
+        help="train a new/existing model in test_models/ with the TD3 algorithm",
     )
     group1e.add_argument(
         "-r", "--run",
@@ -235,21 +235,21 @@ if __name__ == "__main__":
         type=str,
         help="name of the model to run (minus the .zip extension)",
     )
-    group2.add_argument(
+    group3 = parser.add_argument_group("Running arguments")
+    group3.add_argument(
         "-s", "--saved-dir",
         action="store_true",
         help="whether the model will be/is in the saved_models/ directory (otherwise test_models/)",
-    )
-    group3 = parser.add_argument_group("Running arguments")
-    group3.add_argument(
-        "-o", "--old-model",
-        action="store_true",
-        help="whether the model was trained with the old version of the Inchworm environment",
     )
     group3.add_argument(
         "-e", "--eval",
         action="store_true",
         help="whether to print out evaluation data while running the simulation",
+    )
+    group3.add_argument(
+        "-o", "--old-model",
+        action="store_true",
+        help="whether the model was trained with the old version of the Inchworm environment",
     )
     group4 = parser.add_argument_group("Training arguments")
     group4.add_argument(
@@ -263,9 +263,10 @@ if __name__ == "__main__":
     if args.train:
         if args.model_name is None:
             parser.error("argument -t/--train requires -m/--model-name")
+        if args.saved_dir:
+            parser.error("argument -t/--train cannot be used with -s/--saved-dir (cannot train a model in the saved_models/ directory)")
         train_with_sb3_agent(
             model_name=args.model_name,
-            model_dir="saved_models" if args.saved_dir else "test_models",
             total_timesteps=args.total_timesteps
         )
     elif args.run:
