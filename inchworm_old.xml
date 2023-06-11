@@ -1,0 +1,100 @@
+<!--An inchworm xml environment in MuJoCo-->
+
+<mujoco model="2d_inchworm">
+  <!--
+  Inertiafromgeom specifies whether body masses and inertias are inferred from their attached geoms
+  or defined by explicit attribute values
+  -->
+  <compiler angle="degree" inertiafromgeom="true" />
+
+  <!--
+  Integrator is for numerical integration, see: https://mujoco.readthedocs.io/en/latest/computation.html#geintegration
+  NOTE: timestep must be equal to 1 / (frame_skip * metadata['render_fps'])
+  -->
+  <option integrator="RK4" timestep="0.002" />
+
+  <!-- Default attribute values for various elements -->
+  <default>
+    <joint armature="1" damping="1" limited="true" />
+    <geom conaffinity="0" condim="3" density="5.0" friction="1 1 1" margin="0.01" rgba="0.8 0.6 0.4 1" />
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" gear="200" />
+  </default>
+
+  <!-- Visual textures and materials -->
+  <asset>
+    <texture builtin="gradient" height="100" rgb1="1 1 1" rgb2="0 0 0" type="skybox" width="100" />
+    <texture builtin="checker" height="100" name="texplane" rgb1="0 0 0" rgb2="0.8 0.8 0.8" type="2d" width="100" />
+
+    <!-- Keep values of texrepeat 1.5x those of the floor geom below -->
+    <material name="MatPlane" reflectance="0.5" shininess="1" specular="1" texrepeat="600 60" texture="texplane" />
+  </asset>
+
+  <!-- The physical environment -->
+  <worldbody>
+    <!-- Light source -->
+    <light cutoff="100" diffuse="1 1 1" dir="-0 0 -1.3" directional="true" exponent="1" pos="0 0 1.3" specular=".1 .1 .1" />
+
+    <!-- Floor -->
+    <geom conaffinity="1" condim="3" material="MatPlane" name="floor" pos="0 0 0" rgba="0.8 0.9 0.8 1" size="400 40 1" type="plane" />
+
+    <!-- Segment 1: Left Foot -->
+    <body name="left_foot" pos="0 0 1">
+      <geom type="cylinder" mass="0" size="0.2" fromto="-0.5 -0.2 0 -0.5 0.2 0" rgba="0.8 0 0 1"/>
+      <geom type="box" size="0.5 0.2 0.2" rgba="0.8 0 0 1"/>
+
+      <!--
+      These three joints allow the first segment, which is the root segment of the inchworm,
+      hierarchically speaking, to slide along the x and y axes as well as rotate within the x-y plane
+      -->
+      <joint name="hc_joint" type="hinge" armature="0" damping="0" limited="false" margin="0.01" pos="3 0 0" axis="0 1 0" />
+      <joint name="hsx_joint" type="slide" armature="0" damping="0" limited="false" margin="0.01" pos="3 0 0" axis="1 0 0" />
+      <joint name="hsz_joint" type="slide" armature="0" damping="0" limited="false" margin="0.01" pos="3 0 0" axis="0 0 1" />
+
+      <!-- Segment 2: Left Middle -->
+      <body name="left_middle" pos="1.5 0 0">
+        <camera name="track" mode="trackcom" pos="1 -10 0.3" xyaxes="1 0 0 0 0 1"/>
+
+        <geom type="cylinder" mass="0" size="0.2" fromto="-1 -0.2 0 -1 0.2 0" rgba="0 0.8 0 1"/>
+        <geom type="box" size="1 0.2 0.2" rgba="0 0.8 0 1"/>
+        <geom type="cylinder" mass="0" size="0.2" fromto="1 -0.2 0 1 0.2 0" rgba="0 0.8 0 1"/>
+
+        <!-- This joint allows the second segment to hinge off the first -->
+        
+        <joint name="left_joint" type="hinge" pos="-1 0 0" axis="0 1 0" range="-90 0" />
+
+        <!-- Segment 3: Right Middle -->
+        <body name="right_middle" pos="2 0 0">
+          <geom type="box" size="1 0.2 0.2" rgba="0 0 0.8 1"/>
+          <geom type="cylinder" mass="0" size="0.2" fromto="1 -0.2 0 1 0.2 0" rgba="0 0 0.8 1"/>
+
+          <!-- This joint allows the third segment to hinge off the second -->
+          <joint name="middle_joint" type="hinge" pos="-1 0 0" axis="0 1 0" range="0 150" />
+
+          <!-- Segment 4: Right Foot -->
+          <body name="right_foot" pos="1.5 0 0">
+          
+            <geom type="box" size="0.5 0.2 0.2" rgba="0.8 0.8 0 1" />
+            <geom type="cylinder" mass="0" size="0.2" fromto="0.5 -0.2 0 0.5 0.2 0" rgba="0.8 0.8 0 1"/>
+
+            <!-- This joint allows the fourth segment to hinge off the third -->
+            
+            <joint name="right_joint" type="hinge" pos="-0.5 0 0" axis="0 1 0" range="-90 0" />
+            
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <!-- The actuators (the agent's means of interacting with the environment) -->
+  <actuator>
+    <!-- Motors for the three joints -->
+    <motor joint="left_joint" />
+    <motor joint="middle_joint" />
+    <motor joint="right_joint" />
+
+    <!-- Adhesion for the two feet (gain is the force of the adhesion) -->
+    <adhesion body="left_foot" ctrlrange="0 1" forcelimited="false" gain="10000" />
+    <adhesion body="right_foot" ctrlrange="0 1" forcelimited="false" gain="10000" />
+  </actuator>
+</mujoco>

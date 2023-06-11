@@ -122,35 +122,54 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         "render_fps": 100,
     }
 
-    root_body = "left_foot"
+    root_body = "mid_point"
+    left_gripper_geom = "left_gripper_geom"
+    right_gripper_geom = "right_gripper_geom"
+    left_foot = "left_foot"
+    right_foot = "right_foot"
 
     from os import path
 
     inchworm_xml_file = path.join(path.dirname(__file__), "inchworm.xml")
+    old_inchworm_xml_file = path.join(path.dirname(__file__), "inchworm_old.xml")
 
     def __init__(
         self,
         xml_file=inchworm_xml_file,
+        old_model=False,
+        evals=False,
         ctrl_cost_weight=0.5,
+        ungrounded_cost_weight=100,
         healthy_reward=1.0,
         terminate_when_unhealthy=True,
         reset_noise_scale=0.1,
-        velocity_record_length=200,
-        avg_velocity_min_threshold=0.05,
         **kwargs,
     ):
+        if old_model:
+            xml_file = self.old_inchworm_xml_file
+            self.root_body = self.left_foot
+
         utils.EzPickle.__init__(
             self,
             xml_file,
+            old_model,
+            evals,
             ctrl_cost_weight,
+            ungrounded_cost_weight,
             healthy_reward,
             terminate_when_unhealthy,
             reset_noise_scale,
             **kwargs,
         )
 
+        # How many frames to apply an action for when that action is applied to the environment
+        frame_skip = 5
+
         # Store parameters
+        self._old_model = old_model
+        self._evals = evals
         self._ctrl_cost_weight = ctrl_cost_weight
+        self._ungrounded_cost_weight = ungrounded_cost_weight
 
         self._healthy_reward = healthy_reward
         self._terminate_when_unhealthy = terminate_when_unhealthy
@@ -163,12 +182,28 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
             low=-np.inf, high=np.inf, shape=(obs_shape,), dtype=np.float64
         )
 
-        # How many frames to apply an action for when that action is applied to the environment
-        frame_skip = 5
+        # Indicates whether the inchworm has contacted the ground yet
+        self.contacted_ground = False
 
-        # Store velocity history to calculate average velocity
-        self.velocity_record: deque[int] = deque(maxlen=velocity_record_length)
-        self.avg_velocity_min_threshold = avg_velocity_min_threshold
+        # Evaluation records
+        if self._evals:
+            self._evals_reward_record = []
+            self._evals_velocity_record = []
+            self._evals_ground_contact_record = []
+            self._evals_upside_down_record = []
+
+            self._evals_reward_avg_record = []
+            self._evals_velocity_avg_record = []
+            self._evals_ground_contact_freq_record = []
+            self._evals_upside_down_freq_record = []
+
+            self._eval_avgs = {
+                "reward_avg": 0,
+                "velocity_avg": 0,
+                "ground_contact_freq": 0,
+                "upside_down_freq": 0,
+            }
+
 
         MujocoEnv.__init__(
             self,
@@ -193,8 +228,29 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         return self.action_space
 
     @property
-    def avg_velocity(self):
-        return np.mean(list(self.velocity_record))
+    def is_grounded(self):
+        if self._old_model:
+            return self.data.ncon > 0
+
+        left_gripper_id = self.data.geom(self.left_gripper_geom).id
+        right_gripper_id = self.data.geom(self.right_gripper_geom).id
+        grounded = False
+
+        for i in range(self.data.ncon):
+            contact = self.data.contact[i]
+            if (contact.geom1 == left_gripper_id or
+                contact.geom2 == left_gripper_id):
+                grounded = True
+            if (contact.geom1 == right_gripper_id or
+                contact.geom2 == right_gripper_id):
+                grounded = True
+        return grounded
+    
+    @property
+    def is_upside_down(self):
+        left_foot_xpos = self.get_body_com(self.left_foot).copy()[0]
+        right_foot_xpos = self.get_body_com(self.right_foot).copy()[0]
+        return left_foot_xpos > right_foot_xpos
 
     @property
     def healthy_reward(self):
@@ -212,15 +268,21 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         control_cost = self._ctrl_cost_weight * np.sum(np.square(action[:3]))
         return control_cost
 
+    def ungrounded_cost(self):
+        """
+        Cost for being ungrounded
+        """
+        self.contacted_ground = self.contacted_ground or self.is_grounded
+        grounded = not self.contacted_ground or self.is_grounded  # Once grounded, must stay grounded
+        ungrounded_cost = self._ungrounded_cost_weight * float(not grounded)
+        return ungrounded_cost
+
     @property
     def is_healthy(self):
         # State vector contains all the positions and velocities
         state = self.state_vector()
-        assert self.velocity_record.maxlen is not None
         is_finite = np.isfinite(state).all()
-        vel_record_full = len(self.velocity_record) >= self.velocity_record.maxlen
-        vel_meets_threshold = self.avg_velocity >= self.avg_velocity_min_threshold
-        is_healthy = is_finite and (not vel_record_full or vel_meets_threshold)
+        is_healthy = is_finite
         return is_healthy
 
     @property
@@ -238,19 +300,12 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         action[3:5] = np.round(rescaled_adhesion_actions)  # Round to 0 or 1
 
         # Record current robot position, apply the action to the simulation, then record the resulting robot position
-        xpos_before, _, zpos_before = self.get_body_com(self.root_body).copy()
+        xpos_before, _, _ = self.get_body_com(self.root_body).copy()
         self.do_simulation(action, self.frame_skip)
-        xpos_after, _, zpos_after = self.get_body_com(self.root_body).copy()
+        xpos_after, _, _ = self.get_body_com(self.root_body).copy()
 
         # Calculate the robot's forward (x-axis) velocity based on its change in position
         x_velocity = (xpos_after - xpos_before) / self.dt
-
-        # Calculate the robot's magnitude of velocity
-        disp = np.array([xpos_after - xpos_before, zpos_after - zpos_before])
-        velocity_magnitude = np.sqrt(np.sum(np.square(disp))) / self.dt
-
-        # Record the robot's velocity
-        self.velocity_record.append(velocity_magnitude)
 
         # Calculate positive rewards
         forward_reward = x_velocity
@@ -260,8 +315,9 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
 
         # Calculate penalties
         ctrl_cost = self.control_cost(action)
+        ungrounded_cost = self.ungrounded_cost()
 
-        costs = ctrl_cost
+        costs = ctrl_cost + ungrounded_cost
 
         # Calculate total reward to give to the agent
         reward = rewards - costs
@@ -280,12 +336,20 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
             "reward_survive": healthy_reward,
             "penalty_ctrl": ctrl_cost,
             "x_position": xpos_after,
-            "x_velocity": x_velocity,
+            "x_velocity": x_velocity
         }
 
         # Render the current simulation frame
         if self.render_mode == "human":
             self.render()
+
+        if self._evals:
+            self._evals_reward_record.append(reward)
+            self._evals_velocity_record.append(x_velocity)
+            self._evals_ground_contact_record.append(self.is_grounded)
+            self._evals_upside_down_record.append(self.is_upside_down)
+
+            info["evals"] = self._eval_avgs
 
         return observation, reward, terminated, truncated, info
 
@@ -313,12 +377,59 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         self.set_state(qpos, qvel)
         # self.set_state(self.init_qpos, self.init_qvel)
 
+        if self._evals and len(self._evals_reward_record) > 100:
+            ep_eval = InchwormEnv.calc_evals({
+                "reward_avg": self._evals_reward_record,
+                "velocity_avg": self._evals_velocity_record,
+                "ground_contact_freq": self._evals_ground_contact_record,
+                "upside_down_freq": self._evals_upside_down_record
+            })
+            InchwormEnv.print_evals(ep_eval, "Episode Evaluation")
+
+            # Save averages and frequencies to lists
+            self._evals_reward_avg_record.append(ep_eval["reward_avg"])
+            self._evals_velocity_avg_record.append(ep_eval["velocity_avg"])
+            self._evals_ground_contact_freq_record.append(ep_eval["ground_contact_freq"])
+            self._evals_upside_down_freq_record.append(ep_eval["upside_down_freq"])
+
+            # Calculate the average of the averages and the average of the frequencies
+            self._eval_avgs = InchwormEnv.calc_evals({
+                "reward_avg": self._evals_reward_avg_record,
+                "velocity_avg": self._evals_velocity_avg_record,
+                "ground_contact_freq": self._evals_ground_contact_freq_record,
+                "upside_down_freq": self._evals_upside_down_freq_record
+            })
+
+            # Reset the evaluation statistics
+            self._evals_reward_record = []
+            self._evals_velocity_record = []
+            self._evals_ground_contact_record = []
+            self._evals_upside_down_record = []
+
         self.num_steps = 0
         self.displacement = self.get_body_com(self.root_body)[0].copy()
-
-        self.velocity_record.clear()
+        self.contacted_ground = False
 
         # Retrieve and return the first observation of the reset environment
         observation = self._get_obs()
 
         return observation
+    
+    @staticmethod
+    def calc_evals(evals) -> dict:
+        return {
+            "reward_avg": np.mean(evals["reward_avg"]),
+            "velocity_avg": np.mean(evals["velocity_avg"]),
+            "ground_contact_freq": np.sum(evals["ground_contact_freq"]) / len(evals["ground_contact_freq"]),
+            "upside_down_freq": np.sum(evals["upside_down_freq"]) / len(evals["upside_down_freq"])
+        }
+    
+    @staticmethod
+    def print_evals(evals: dict, label: str):
+        print(
+            f"{label}\n" +
+            f"\treward_avg:   {evals['reward_avg']}\n" +
+            f"\tvelocity_avg: {evals['velocity_avg']}\n" +
+            f"\tground_contact_freq: {evals['ground_contact_freq']}\n" +
+            f"\tupside_down_freq:    {evals['upside_down_freq']}\n"
+        )
