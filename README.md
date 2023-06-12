@@ -1,12 +1,16 @@
 # InchwormRL
 
+By Schuyler Fenton, Grant Holland, Nathan McCutchen, and Ishan Meher.
+
 This project is for CSC 480 at Cal Poly, taught by Professor Rodrigo Canaan.
 
 ## External Resources
 
-MuJoCo physics engine: https://mujoco.readthedocs.io/en/stable/overview.html
+We used the following external resources in our project.
+
+MuJoCo physics engine: https://mujoco.readthedocs.io/en/stable/overview.html  
 Gymnasium RL framework: https://gymnasium.farama.org/  
-Stable Baselines3 RL algorithms: https://stable-baselines3.readthedocs.io/en/master/index.html
+Stable Baselines3 RL algorithms: https://stable-baselines3.readthedocs.io/en/master/index.html  
 
 ## Setup
 
