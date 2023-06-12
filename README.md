@@ -42,9 +42,9 @@ Run an existing trained model (inchworm3.0_td3) and print evaluation data:
 
 `python3 run_environment.py -rsem inchworm3.0_td3`
 
-Run an existing trained model (inchworm2.1_td3) on the old Inchworm environment:
+Run an existing trained model (inchworm2.1_td3) on the old Inchworm environment and print evaluation data:
 
-`python3 run_environment.py -rsom inchworm2.1_td3`
+`python3 run_environment.py -rsoem inchworm2.1_td3`
 
 Train a new model (inchworm3.1_td3) with 10,000,000 timesteps:
 
