@@ -87,7 +87,6 @@
         <!-- Camera to track the inchworm body (fixed on the left_middle body segment) -->
         <camera name="track" mode="trackcom" pos="1 -10 0.3" xyaxes="1 0 0 0 0 1"/>
 
-        <geom type="cylinder" mass="0" size="0.2" fromto="-1 -0.201 0 -1 0.201 0" rgba="0 0.8 0 1"/>
         <geom type="box" size="1 0.2 0.2" rgba="0 0.8 0 1"/>
         <body name="mid_point" pos="1 0 0">
           <geom type="cylinder" mass="0" size="0.2" fromto="0 -0.201 0 0 0.201 0" rgba="0 0 0.8 1"/>
@@ -99,7 +98,6 @@
         <!-- Segment 3: Right Middle -->
         <body name="right_middle" pos="2 0 0">
           <geom type="box" size="1 0.2 0.2" rgba="0 0 0.8 1"/>
-          <geom type="cylinder" mass="0" size="0.2" fromto="1 -0.201 0 1 0.201 0" rgba="0.8 0.8 0 1"/>
 
           <!-- This joint allows the third segment to hinge off the second -->
           <joint name="middle_joint" class="connector_joint" pos="-1 0 0" range="0 150" />
