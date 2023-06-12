@@ -1,4 +1,6 @@
+from os import path
 from collections import deque
+
 import numpy as np
 
 from gymnasium import utils
@@ -24,7 +26,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
     on the two feet.
 
     ## Action Space
-    The action space is a `Box([-1, -1, -1, 0, 0], 1, (5,), float32)`.
+    The action space is a `Box(-1, 1, (5,), float32)`.
     An action represents the torques applied at the three hinge joints concatenated
     with the input applied to the two adhesion actuators.
 
@@ -33,8 +35,8 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
     | 0   | Torque applied on the rotor between the first and second links    | -1          | 1           | left_joint                       | hinge    | torque (N m) |
     | 1   | Torque applied on the rotor between the second and third links    | -1          | 1           | middle_joint                     | hinge    | torque (N m) |
     | 2   | Torque applied on the rotor between the third and fourth links    | -1          | 1           | right_joint                      | hinge    | torque (N m) |
-    | 3   | Whether adhesion is activated on the left foot                    | 0           | 1           | left_foot                        | adhesion | force (N) |
-    | 4   | Whether adhesion is activated on the right foot                   | 0           | 1           | right_foot                       | adhesion | force (N) |
+    | 3   | Whether adhesion is activated on the left foot                    | -1          | 1           | left_foot                        | adhesion | force (N) |
+    | 4   | Whether adhesion is activated on the right foot                   | -1          | 1           | right_foot                       | adhesion | force (N) |
 
     ## Observation Space
 
@@ -64,7 +66,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
     DOFs expressed as quaternions. One can read more about free joints on the [Mujoco Documentation](https://mujoco.readthedocs.io/en/latest/XMLreference.html).
 
     ## Rewards
-    The reward consists of three parts:
+    The reward consists of four parts:
 
     - *healthy_reward*: Every timestep that the inchworm is healthy (see definition in section "Episode Termination"), it gets a reward of fixed value `healthy_reward`
 
@@ -78,7 +80,14 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
     that are too large. It is measured as *`ctrl_cost_weight` * sum(action[:3]<sup>2</sup>)*
     where *`ctr_cost_weight`* is a parameter set for the control and has a default value of 0.5.
 
-    The total reward returned is ***reward*** *=* *healthy_reward + forward_reward - ctrl_cost*.
+    - *ungrounded_cost*: A negative reward for penalising the inchworm if both its feet leave
+    the ground. It is measured as *`ungrounded_cost_weight` * `grounded`* where *`ungrounded_cost_weight`*
+    is a parameter set for the control and has a default value of 100. *`grounded`* indicates whether
+    the inchworm is currently touching the ground or not, but will only begin returning False once
+    the inchworm has contacted the ground for the first time, to prevent penalising the inchworm
+    at the start of each episode (the inchworm spawns in the air).
+
+    The total reward returned is ***reward*** *=* *healthy_reward + forward_reward - ctrl_cost - ungrounded_cost*.
 
     `info` will also contain the individual reward terms.
 
@@ -107,7 +116,10 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
     | Parameter                  | Type      | Default          | Description                   |
     |----------------------------|-----------|------------------|-------------------------------|
     | `xml_file`                 | **str**   | `"inchworm.xml"` | Path to a MuJoCo model |
+    | `old_model`                | **bool**  | `False`          | If true, use the old version of the inchworm xml environment
+    | `evals`                    | **bool**  | `False`          | If true, calculate evaluation metrics on the episodes
     | `ctrl_cost_weight`         | **float** | `0.5`            | Weight for *ctrl_cost* term (see section on reward) |
+    | `ungrounded_cost_weight`   | **float** | `100`            | Weight for *ungrounded_cost* term (see section on reward) |
     | `healthy_reward`           | **float** | `1`              | Constant reward given if the inchworm is "healthy" after timestep |
     | `terminate_when_unhealthy` | **bool**  | `True`           | If true, issue a done signal if the inchworm is deemed to be "unhealthy" |
     | `reset_noise_scale`        | **float** | `0.1`            | Scale of random perturbations of initial position and velocity (see section on Starting State) |
@@ -127,8 +139,6 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
     right_gripper_geom = "right_gripper_geom"
     left_foot = "left_foot"
     right_foot = "right_foot"
-
-    from os import path
 
     inchworm_xml_file = path.join(path.dirname(__file__), "inchworm.xml")
     old_inchworm_xml_file = path.join(path.dirname(__file__), "inchworm_old.xml")
@@ -183,7 +193,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         )
 
         # Indicates whether the inchworm has contacted the ground yet
-        self.contacted_ground = False
+        self.has_contacted_ground = False
 
         # Evaluation records
         if self._evals:
@@ -203,7 +213,6 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
                 "ground_contact_freq": 0,
                 "upside_down_freq": 0,
             }
-
 
         MujocoEnv.__init__(
             self,
@@ -229,6 +238,9 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
 
     @property
     def is_grounded(self):
+        """
+        Whether the inchworm is currently touching the ground with at least one foot
+        """
         if self._old_model:
             return self.data.ncon > 0
 
@@ -239,10 +251,10 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         for i in range(self.data.ncon):
             contact = self.data.contact[i]
             if (contact.geom1 == left_gripper_id or
-                contact.geom2 == left_gripper_id):
+                    contact.geom2 == left_gripper_id):
                 grounded = True
             if (contact.geom1 == right_gripper_id or
-                contact.geom2 == right_gripper_id):
+                    contact.geom2 == right_gripper_id):
                 grounded = True
         return grounded
     
@@ -272,8 +284,8 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         """
         Cost for being ungrounded
         """
-        self.contacted_ground = self.contacted_ground or self.is_grounded
-        grounded = not self.contacted_ground or self.is_grounded  # Once grounded, must stay grounded
+        self.has_contacted_ground = self.has_contacted_ground or self.is_grounded
+        grounded = not self.has_contacted_ground or self.is_grounded  # Once grounded, must stay grounded
         ungrounded_cost = self._ungrounded_cost_weight * float(not grounded)
         return ungrounded_cost
 
@@ -375,7 +387,6 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
             * self.np_random.standard_normal(self.model.nv)
         )
         self.set_state(qpos, qvel)
-        # self.set_state(self.init_qpos, self.init_qvel)
 
         if self._evals and len(self._evals_reward_record) > 100:
             ep_eval = InchwormEnv.calc_evals({
@@ -408,7 +419,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
 
         self.num_steps = 0
         self.displacement = self.get_body_com(self.root_body)[0].copy()
-        self.contacted_ground = False
+        self.has_contacted_ground = False
 
         # Retrieve and return the first observation of the reset environment
         observation = self._get_obs()

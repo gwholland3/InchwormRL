@@ -26,6 +26,7 @@ def train_with_sb3_agent(
     ----------
     - `model_name`: name of the zip file (minus the .zip extension) contained in `model_dir` that represents a saved pretrained agent
     - `total_timesteps`: the number of time steps to train the agent for
+    - `learning_rate`: the learning rate to apply to the training
     - `render`: whether to render the simulation after the agent is done training
     """
     model_path = f"test_models/{model_name}.zip"
@@ -75,6 +76,7 @@ def run_simulation_with_sb3_agent(
     - `model_name`: name of the zip file (minus the .zip extension) contained in `model_dir` that represents a saved pretrained agent
     - `model_dir`: directory path where the model is stored (with no trailing slash)
     - `old_model`: whether the model was trained with the old version of the Inchworm environment
+    - `evals`: whether to calculate evaluation metrics while running the agent
     """
     saved_model_path = f"{model_dir}/{model_name}.zip"
     env = InchwormEnv(render_mode="human", old_model=old_model, evals=evals)
