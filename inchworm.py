@@ -117,6 +117,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
     |----------------------------|-----------|------------------|-------------------------------|
     | `xml_file`                 | **str**   | `"inchworm.xml"` | Path to a MuJoCo model |
     | `old_model`                | **bool**  | `False`          | If true, use the old version of the inchworm xml environment
+    | `episode_length`           | **int**   | `1000`           | Number of timesteps per episode (before truncation) |
     | `evals`                    | **bool**  | `False`          | If true, calculate evaluation metrics on the episodes
     | `ctrl_cost_weight`         | **float** | `0.5`            | Weight for *ctrl_cost* term (see section on reward) |
     | `ungrounded_cost_weight`   | **float** | `100`            | Weight for *ungrounded_cost* term (see section on reward) |
@@ -146,6 +147,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
     def __init__(
         self,
         xml_file=inchworm_xml_file,
+        episode_length=1000,
         old_model=False,
         evals=False,
         ctrl_cost_weight=0.5,
@@ -162,6 +164,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         utils.EzPickle.__init__(
             self,
             xml_file,
+            episode_length,
             old_model,
             evals,
             ctrl_cost_weight,
@@ -176,6 +179,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         frame_skip = 5
 
         # Store parameters
+        self._episode_length = episode_length
         self._old_model = old_model
         self._evals = evals
         self._ctrl_cost_weight = ctrl_cost_weight
@@ -199,17 +203,20 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         if self._evals:
             self._evals_reward_record = []
             self._evals_velocity_record = []
+            self._evals_motor_input_record = []
             self._evals_ground_contact_record = []
             self._evals_upside_down_record = []
 
             self._evals_reward_avg_record = []
             self._evals_velocity_avg_record = []
+            self._evals_motor_input_avg_record = []
             self._evals_ground_contact_freq_record = []
             self._evals_upside_down_freq_record = []
 
             self._eval_avgs = {
                 "reward_avg": 0,
                 "velocity_avg": 0,
+                "motor_input_avg": 0,
                 "ground_contact_freq": 0,
                 "upside_down_freq": 0,
             }
@@ -260,9 +267,12 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
     
     @property
     def is_upside_down(self):
+        """
+        Returns true if the inchworm is upside down
+        """
         left_foot_xpos = self.get_body_com(self.left_foot).copy()[0]
         right_foot_xpos = self.get_body_com(self.right_foot).copy()[0]
-        return left_foot_xpos > right_foot_xpos
+        return left_foot_xpos - right_foot_xpos > 1
 
     @property
     def healthy_reward(self):
@@ -338,7 +348,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         terminated = self.terminated
 
         self.num_steps += 1
-        truncated = self.num_steps == 1000
+        truncated = self.num_steps == self._episode_length
 
         observation = self._get_obs()
 
@@ -358,6 +368,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         if self._evals:
             self._evals_reward_record.append(reward)
             self._evals_velocity_record.append(x_velocity)
+            self._evals_motor_input_record.append(ctrl_cost / self._ctrl_cost_weight)
             self._evals_ground_contact_record.append(self.is_grounded)
             self._evals_upside_down_record.append(self.is_upside_down)
 
@@ -392,6 +403,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
             ep_eval = InchwormEnv.calc_evals({
                 "reward_avg": self._evals_reward_record,
                 "velocity_avg": self._evals_velocity_record,
+                "motor_input_avg": self._evals_motor_input_record,
                 "ground_contact_freq": self._evals_ground_contact_record,
                 "upside_down_freq": self._evals_upside_down_record
             })
@@ -400,6 +412,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
             # Save averages and frequencies to lists
             self._evals_reward_avg_record.append(ep_eval["reward_avg"])
             self._evals_velocity_avg_record.append(ep_eval["velocity_avg"])
+            self._evals_motor_input_avg_record.append(ep_eval["motor_input_avg"])
             self._evals_ground_contact_freq_record.append(ep_eval["ground_contact_freq"])
             self._evals_upside_down_freq_record.append(ep_eval["upside_down_freq"])
 
@@ -407,6 +420,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
             self._eval_avgs = InchwormEnv.calc_evals({
                 "reward_avg": self._evals_reward_avg_record,
                 "velocity_avg": self._evals_velocity_avg_record,
+                "motor_input_avg": self._evals_motor_input_avg_record,
                 "ground_contact_freq": self._evals_ground_contact_freq_record,
                 "upside_down_freq": self._evals_upside_down_freq_record
             })
@@ -414,12 +428,13 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
             # Reset the evaluation statistics
             self._evals_reward_record = []
             self._evals_velocity_record = []
+            self._evals_motor_input_record = []
             self._evals_ground_contact_record = []
             self._evals_upside_down_record = []
 
         self.num_steps = 0
         self.displacement = self.get_body_com(self.root_body)[0].copy()
-        self.has_contacted_ground = False
+        self.contacted_ground = False
 
         # Retrieve and return the first observation of the reset environment
         observation = self._get_obs()
@@ -431,6 +446,7 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
         return {
             "reward_avg": np.mean(evals["reward_avg"]),
             "velocity_avg": np.mean(evals["velocity_avg"]),
+            "motor_input_avg": np.mean(evals["motor_input_avg"]),
             "ground_contact_freq": np.sum(evals["ground_contact_freq"]) / len(evals["ground_contact_freq"]),
             "upside_down_freq": np.sum(evals["upside_down_freq"]) / len(evals["upside_down_freq"])
         }
@@ -439,8 +455,9 @@ class InchwormEnv(MujocoEnv, utils.EzPickle):
     def print_evals(evals: dict, label: str):
         print(
             f"{label}\n" +
-            f"\treward_avg:   {evals['reward_avg']}\n" +
-            f"\tvelocity_avg: {evals['velocity_avg']}\n" +
+            f"\treward_avg:          {evals['reward_avg']}\n" +
+            f"\tvelocity_avg:        {evals['velocity_avg']}\n" +
+            f"\tmotor_input_avg:     {evals['motor_input_avg']}\n" +
             f"\tground_contact_freq: {evals['ground_contact_freq']}\n" +
             f"\tupside_down_freq:    {evals['upside_down_freq']}\n"
         )
