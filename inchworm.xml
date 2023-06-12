@@ -75,7 +75,7 @@
 
       <!--
       These three joints allow the first segment, which is the root segment of the inchworm,
-      hierarchically speaking, to slide along the x and y axes as well as rotate within the x-y plane,
+      hierarchically speaking, to slide along the x and y axes as well as rotate within the x-z plane,
       relative to its parent body (the worldbody). This effectively constrains the inchworm to two dimensions.
       -->
       <joint name="hc_joint" type="hinge" axis="0 1 0" />

@@ -44,7 +44,7 @@
 
       <!--
       These three joints allow the first segment, which is the root segment of the inchworm,
-      hierarchically speaking, to slide along the x and y axes as well as rotate within the x-y plane
+      hierarchically speaking, to slide along the x and y axes as well as rotate within the x-z plane
       -->
       <joint name="hc_joint" type="hinge" armature="0" damping="0" limited="false" margin="0.01" pos="3 0 0" axis="0 1 0" />
       <joint name="hsx_joint" type="slide" armature="0" damping="0" limited="false" margin="0.01" pos="3 0 0" axis="1 0 0" />
