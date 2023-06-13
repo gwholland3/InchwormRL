@@ -5,7 +5,7 @@ import keyboard
 import argparse
 import numpy as np
 
-from stable_baselines3 import TD3
+from stable_baselines3 import TD3, SAC
 from stable_baselines3.common.env_checker import check_env
 
 from inchworm import InchwormEnv
@@ -13,6 +13,7 @@ from inchworm import InchwormEnv
 
 def train_with_sb3_agent(
     model_name="inchworm_td3",
+    algorithm="td3",
     total_timesteps=30000,
     learning_rate=0.0003,
     render=False
@@ -25,22 +26,27 @@ def train_with_sb3_agent(
     Parameters
     ----------
     - `model_name`: name of the zip file (minus the .zip extension) contained in `model_dir` that represents a saved pretrained agent
+    - `algorithm`: the algorithm to use for training. Must be one of "td3" or "sac"
     - `total_timesteps`: the number of time steps to train the agent for
     - `learning_rate`: the learning rate to apply to the training
     - `render`: whether to render the simulation after the agent is done training
     """
     model_path = f"test_models/{model_name}.zip"
+
+    algorithm_class = {"td3": TD3, "sac": SAC}.get(algorithm.lower())
+    assert algorithm_class is not None, f"Invalid algorithm: {algorithm}"
+
     env = InchwormEnv(render_mode=("human" if render else "rgb_array"))
     check_env(
         env
     )  # Make sure our env is compatible with the interface that stable-baselines3 agents expect
 
     try:
-        model = TD3.load(model_path, env)
+        model = algorithm_class.load(model_path, env)
         print("Continuing training of saved model")
     except FileNotFoundError:
         print("No saved model found, training new model")
-        model = TD3("MlpPolicy", env, verbose=1, learning_rate=learning_rate)
+        model = algorithm_class("MlpPolicy", env, verbose=1, learning_rate=learning_rate)
 
     model.set_random_seed(time.time_ns() % 2 ** 32)  # Set random seed to current time
 
@@ -64,6 +70,7 @@ def train_with_sb3_agent(
 def run_simulation_with_sb3_agent(
     model_name="inchworm_td3",
     model_dir="saved_models",
+    algorithm="td3",
     old_model=False,
     evals=False
 ):
@@ -75,17 +82,22 @@ def run_simulation_with_sb3_agent(
     ----------
     - `model_name`: name of the zip file (minus the .zip extension) contained in `model_dir` that represents a saved pretrained agent
     - `model_dir`: directory path where the model is stored (with no trailing slash)
+    - `algorithm`: the algorithm to use for training. Must be one of "td3" or "sac"
     - `old_model`: whether the model was trained with the old version of the Inchworm environment
     - `evals`: whether to calculate evaluation metrics while running the agent
     """
     saved_model_path = f"{model_dir}/{model_name}.zip"
+
+    algorithm_class = {"td3": TD3, "sac": SAC}.get(algorithm.lower())
+    assert algorithm_class is not None, f"Invalid algorithm: {algorithm}"
+
     env = InchwormEnv(render_mode="human", old_model=old_model, evals=evals)
     check_env(
         env
     )  # Make sure our env is compatible with the interface that stable-baselines3 agents expect
 
     try:
-        model = TD3.load(saved_model_path, env)
+        model = algorithm_class.load(saved_model_path, env)
         print("Using specified model")
     except FileNotFoundError:
         print("Specified model not found")
@@ -237,6 +249,12 @@ if __name__ == "__main__":
         type=str,
         help="name of the model to run (minus the .zip extension)",
     )
+    group2.add_argument(
+        "-a", "--algorithm",
+        type=str,
+        default="td3",
+        help="algorithm to use for training/running model, either sac or td3 (default: td3)",
+    )
     group3 = parser.add_argument_group("Running arguments")
     group3.add_argument(
         "-s", "--saved-dir",
@@ -275,6 +293,7 @@ if __name__ == "__main__":
             parser.error("argument -t/--train cannot be used with -s/--saved-dir (cannot train a model in the saved_models/ directory)")
         train_with_sb3_agent(
             model_name=args.model_name,
+            algorithm=args.algorithm,
             total_timesteps=args.total_timesteps,
             learning_rate=args.learning_rate
         )
@@ -283,6 +302,7 @@ if __name__ == "__main__":
             parser.error("argument -r/--run requires -m/--model-name")
         run_simulation_with_sb3_agent(
             model_name=args.model_name,
+            algorithm=args.algorithm,
             model_dir="saved_models" if args.saved_dir else "test_models",
             old_model=args.old_model,
             evals=args.eval

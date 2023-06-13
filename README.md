@@ -10,7 +10,7 @@ We used the following external resources in our project.
 
 MuJoCo physics engine: https://mujoco.readthedocs.io/en/stable/overview.html  
 Gymnasium RL framework: https://gymnasium.farama.org/  
-Stable Baselines3 RL algorithms: https://stable-baselines3.readthedocs.io/en/master/index.html  
+Stable Baselines3 RL algorithms: https://stable-baselines3.readthedocs.io/en/master/index.html
 
 ## Setup
 
@@ -51,7 +51,8 @@ Train a new model (inchworm3.1_td3) with 10,000,000 timesteps:
 `python3 run_environment.py -tm inchworm3.1_td3 -T 10000000`
 
 ```
-usage: run_environment.py [-h] (-t | -r | -R | -c) [-m MODEL_NAME] [-s] [-e] [-o] [-T TOTAL_TIMESTEPS] [-l LEARNING_RATE]
+usage: run_environment.py [-h] (-t | -r | -R | -c) [-m MODEL_NAME] [-a ALGORITHM] [-s] [-e] [-o]
+                          [-T TOTAL_TIMESTEPS] [-l LEARNING_RATE]
 
 Run or train an agent to control an inchworm robot
 
@@ -67,6 +68,8 @@ Functional arguments (mutually exclusive):
 Training and running arguments:
   -m MODEL_NAME, --model-name MODEL_NAME
                         name of the model to run (minus the .zip extension)
+  -a ALGORITHM, --algorithm ALGORITHM
+                        algorithm to use for training/running model, either sac or td3 (default: td3)
 
 Running arguments:
   -s, --saved-dir       whether the model will be/is in the saved_models/ directory (otherwise test_models/)
